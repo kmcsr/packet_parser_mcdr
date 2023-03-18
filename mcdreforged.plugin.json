@@ -1,0 +1,22 @@
+{
+	"id": "packet_parser_mcdr",
+	"version": "0.0.1",
+	"name": "PacketParser",
+	"author": [
+		"zyxkad"
+	],
+	"description": {
+		"en_us": "A connection packet parser plugin for minecraft Java edition",
+		"zh_cn": "一个解析minecraft Java版通讯包的插件"
+	},
+	"link": "https://github.com/kmcsr/packet_parser_mcdr",
+	"dependencies": {
+		"mcdreforged": "^2.3.0",
+		"kpi": "~1.4.6",
+		"loginproxy": "~0.5.4"
+	},
+	"resources": [
+		"LICENSE",
+		"lang"
+	]
+}
