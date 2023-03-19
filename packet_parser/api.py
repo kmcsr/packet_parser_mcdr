@@ -7,10 +7,6 @@ from loginproxy.server import ProxyServer, Conn
 from .conn import proxy_conn
 from .utils import *
 
-__all__ = [
-	''
-]
-
 def on_login(self: ProxyServer, conn, addr: tuple[str, int], name: str, login_data: dict):
 	log_info('Player {0}[[{1[0]}]:{1[1]}] trying to join'.format(name, addr))
 	sokt = self.new_connection(login_data)

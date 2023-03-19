@@ -28,7 +28,7 @@ cd $(dirname $0)
 echo '==> Checking...'
 echo
 
-mypy . || exit $?
+mypy ./packet_parser || exit $?
 
 echo '==> Reading plugin metadata...'
 echo

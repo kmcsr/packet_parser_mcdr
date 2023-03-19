@@ -1,5 +1,5 @@
 {
-	"id": "packet_parser_mcdr",
+	"id": "packet_parser",
 	"version": "0.0.1",
 	"name": "PacketParser",
 	"author": [
