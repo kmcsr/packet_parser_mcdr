@@ -20,9 +20,9 @@ class PacketIdMap:
 	def value(self) -> dict[int, PacketType]:
 		return self._value
 
-	def add(self, id: int, typ: PacketType) -> Self:
-		assert id not in self.value, f'Packet id {id} already exists'
-		self.value[id] = typ
+	def add(self, typ: PacketType) -> Self:
+		assert typ.ID not in self.value, f'Packet id {id} already exists'
+		self.value[typ.ID] = typ
 		return self
 
 	def get(self, id: int) -> PacketType | None:
@@ -94,6 +94,7 @@ def _search_repo(lst: list[PacketRepo], protocol: int) -> int:
 
 class Packet(abc.ABC):
 	_packet_types: list[PacketRepo] = []
+	ID: int
 
 	@staticmethod
 	def register(repo: PacketRepo):
@@ -107,8 +108,7 @@ class Packet(abc.ABC):
 			i += 1
 		Packet._packet_types.insert(i, repo)
 
-	def __init_subclass__(cls, *, id: int, **kwargs):
-		super().__init_subclass__(cls, **kwargs)
+	def __init_subclass__(cls, *, id: int):
 		cls.ID = id
 
 	@staticmethod
