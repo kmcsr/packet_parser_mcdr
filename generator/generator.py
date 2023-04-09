@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 import os
 import requests
@@ -33,6 +34,7 @@ _wiki_type_map = {
 	'BITSET': 'BitSet',
 	'STRINGS': 'list[str]',
 	'NBT TAG COMPOUND': 'Compound',
+	'NODE': 'Node',
 
 	'2048 BYTES': 'bytes[2048]',
 }
@@ -65,6 +67,7 @@ _wiki_writter_map = {
 	'BITSET': '{e}.to_bytes({w})',
 	'STRINGS': '{w}.write_todo_strings({e})',
 	'NBT TAG COMPOUND': '{e}.to_bytes({w})',
+	'NODE': '{e}.to_bytes({w})',
 
 	'2048 BYTES': 'w.write({e})',
 }
@@ -85,8 +88,8 @@ _wiki_reader_map = {
 	'VARLONG': '{}.read_varlong()',
 	'ENTITY METADATA': 'EntityMetadata.parse_from({})',
 	'SLOT': 'Slot.parse_from({})',
-	'NBT': 'NBT.parse_from({})',
-	'NBT TAG': 'NBT.parse_from({})',
+	'NBT': 'NBT.parse({})',
+	'NBT TAG': 'NBT.parse({})',
 	'POSITION': '{}.read_pos()',
 	'ANGLE': '{}.read_byte()',
 	'UUID': '{}.read_uuid()',
@@ -96,6 +99,7 @@ _wiki_reader_map = {
 	'BITSET': 'BitSet.parse_from({})',
 	'STRINGS': '{}.read_todo_strings()',
 	'NBT TAG COMPOUND': 'Compound.parse_from({})',
+	'NODE': 'Node.parse_from({})',
 
 	'2048 BYTES': '{}.read(2048)',
 }
@@ -190,6 +194,11 @@ def generate(target: str, id, fd):
 	for tb in tables:
 		trs = tb.find_all('tr')
 		thead = [th.get_text().strip().upper() for th in trs[0].find_all('th')]
+		if len(thead) < 6:
+			continue
+		hasSector = thead[3] == 'SECTOR'
+		if hasSector:
+			thead.pop(3)
 		if thead != ['PACKET ID', 'STATE', 'BOUND TO', 'FIELD NAME', 'FIELD TYPE', 'NOTES']:
 			continue
 		pktname: str | None = None
@@ -201,31 +210,40 @@ def generate(target: str, id, fd):
 			ps = ps.previous_sibling
 		if ps is None:
 			continue
+
 		try:
 			hd = [td.get_text().strip() for td in trs[1].find_all('td')]
+			if hasSector:
+				hd.pop(3)
 			pid, state, bound = hd[0:3]
 			classname = pktname + ("S2C" if bound.upper() == "CLIENT" else "C2S")
 			if not classname.startswith(state):
 				classname = state + classname
 			classnames.append(classname)
+
 			if bound.upper() == "CLIENT":
 				if state in states_s2c:
-					states_s2c[state].append(classname)
+					states_s2c[state].append((classname, pid))
 				else:
-					states_s2c[state] = [classname]
+					states_s2c[state] = [(classname, pid)]
 			else:
 				if state in states_c2s:
-					states_c2s[state].append(classname)
+					states_c2s[state].append((classname, pid))
 				else:
-					states_c2s[state] = [classname]
+					states_c2s[state] = [(classname, pid)]
 			fd.write('@final\n')
-			fd.write(f'class {classname}(Packet, id={pid}):\n')
+			fd.write(f'class {classname}(Packet):\n')
+
+			if hasSector:
+				raise RuntimeError('TODO: Has sector')
+
 			fields = []
 			if len(hd) > 3:
 				name, typ, note = hd[3:]
 				fields.append((name.replace(' ', '_').replace('-', '_').lower(), typ, note))
 			for tr in trs[2:]:
 				tds = [td.get_text().strip() for td in tr.find_all('td')]
+				tds = tds[3:]
 				if len(tds) == 0:
 					continue
 				elif len(tds) == 2:
@@ -285,14 +303,14 @@ def generate(target: str, id, fd):
 	fd.write('\tPacketStatusMap()\n')
 	for state, pkts in states_c2s.items():
 		fd.write(f'\t.add(ConnStatus.{state.upper()}, PacketIdMap()\n')
-		for p in pkts:
-			fd.write(f'\t\t.add({p})\n')
+		for p, d in pkts:
+			fd.write(f'\t\t.add({p}, {d})\n')
 		fd.write('\t)\n')
 	fd.write('\t, PacketStatusMap()\n')
 	for state, pkts in states_s2c.items():
 		fd.write(f'\t.add(ConnStatus.{state.upper()}, PacketIdMap()\n')
-		for p in pkts:
-			fd.write(f'\t\t.add({p})\n')
+		for p, d in pkts:
+			fd.write(f'\t\t.add({p}, {d})\n')
 		fd.write('\t)\n')
 	fd.write('))\n')
 
@@ -308,15 +326,15 @@ def main():
 		# ('1_15', 16067),
 		# ('1_16', 16681),
 		# ('1_17', 16918),
-		# ('1_18', 17499),
+		('1_18', 17499),
 		('1_19', ''),
 	]
 	if not os.path.exists('.cache'):
 		os.mkdir('.cache')
-	if not os.path.exists('generated'):
-		os.mkdir('generated')
+	if not os.path.exists('.generated'):
+		os.mkdir('.generated')
 	for v, p in versions:
-		with open(f'./generated/packet_{v}.py', 'w') as fd:
+		with open(f'./.generated/packet_{v}.py', 'w') as fd:
 			generate(targetURL, p, fd)
 
 if __name__ == '__main__':

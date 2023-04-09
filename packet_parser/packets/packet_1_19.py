@@ -27,6 +27,7 @@ __all__ = [
 	'LoginStartC2S',
 	'LoginEncryptionResponseC2S',
 	'LoginPluginResponseC2S',
+	'PlayBundleDelimiterS2C',
 	'PlaySpawnEntityS2C',
 	'PlaySpawnExperienceOrbS2C',
 	'PlaySpawnPlayerS2C',
@@ -39,6 +40,7 @@ __all__ = [
 	'PlayBlockUpdateS2C',
 	'PlayBossBarS2C',
 	'PlayChangeDifficultyS2C',
+	'PlayChunkBiomesS2C',
 	'PlayClearTitlesS2C',
 	'PlayCommandSuggestionsResponseS2C',
 	'PlayCommandsS2C',
@@ -49,6 +51,7 @@ __all__ = [
 	'PlaySetCooldownS2C',
 	'PlayChatSuggestionsS2C',
 	'PlayPluginMessageS2C',
+	'PlayDamageEventS2C',
 	'PlayDeleteMessageS2C',
 	'PlayDisconnect(play)S2C',
 	'PlayDisguisedChatMessageS2C',
@@ -57,6 +60,7 @@ __all__ = [
 	'PlayUnloadChunkS2C',
 	'PlayGameEventS2C',
 	'PlayOpenHorseScreenS2C',
+	'PlayHurtAnimationS2C',
 	'PlayInitializeWorldBorderS2C',
 	'PlayKeepAliveS2C',
 	'PlayChunkDataandUpdateLightS2C',
@@ -139,6 +143,7 @@ __all__ = [
 	'PlayMessageAcknowledgmentC2S',
 	'PlayChatCommandC2S',
 	'PlayChatMessageC2S',
+	'PlayerSessionC2S',
 	'PlayClientCommandC2S',
 	'PlayClientInformationC2S',
 	'PlayCommandSuggestionsRequestC2S',
@@ -165,7 +170,6 @@ __all__ = [
 	'PlayerCommandC2S',
 	'PlayerInputC2S',
 	'PlayPong(play)C2S',
-	'PlayerSessionC2S',
 	'PlayChangeRecipeBookSettingsC2S',
 	'PlaySetSeenRecipeC2S',
 	'PlayRenameItemC2S',
@@ -217,7 +221,7 @@ class Slot:
 		if present:
 			item_id = r.read_varint()
 			item_count = r.read_byte()
-			nbt = NBT.parse_from(r)
+			nbt = NBT.parse(r)
 		else:
 			item_id = None
 			item_count = None
@@ -225,7 +229,7 @@ class Slot:
 		return cls(present, item_id, item_count, nbt)
 
 @final
-class PlayerProperty(Packet, id=0x02):
+class PlayerProperty(Packet):
 	def __init__(self,
 		name: str, # String (32767)
 		value: str, # String (32767)
@@ -278,8 +282,8 @@ class ParticleData(abc.ABC):
 	def to_bytes(self, b: PacketBuffer) -> None:
 		raise NotImplementedError()
 
-	@abstractmethod
 	@classmethod
+	@abstractmethod
 	def parse_from(cls, r: PacketReader) -> Self:
 		raise NotImplementedError()
 
@@ -564,7 +568,7 @@ class EntityMetadata:
 		elif type == 15:
 			return r.read_varint()
 		elif type == 16:
-			return NBT.parse_from(r)
+			return NBT.parse(r)
 		elif type == 17:
 			return ParticleData.parse_from(r)
 		elif type == 18:
@@ -1200,7 +1204,7 @@ class Action:
 ######## END STRUCTS ########
 
 @final
-class HandshakingHandshakeC2S(Packet, id=0x00):
+class HandshakingHandshakeC2S(Packet):
 	def __init__(self,
 		protocol_version: int, # VarInt
 		server_address: str, # String (255)
@@ -1227,7 +1231,7 @@ class HandshakingHandshakeC2S(Packet, id=0x00):
 		return cls(protocol_version, server_address, server_port, next_state)
 
 @final
-class StatusResponseS2C(Packet, id=0x00):
+class StatusResponseS2C(Packet):
 	def __init__(self,
 		json_response: dict, # String (32767)
 	):
@@ -1242,7 +1246,7 @@ class StatusResponseS2C(Packet, id=0x00):
 		return cls(json_response)
 
 @final
-class StatusPingResponseS2C(Packet, id=0x01):
+class StatusPingResponseS2C(Packet):
 	def __init__(self,
 		payload: int, # Long
 	):
@@ -1257,7 +1261,7 @@ class StatusPingResponseS2C(Packet, id=0x01):
 		return cls(payload)
 
 @final
-class StatusRequestC2S(Packet, id=0x00):
+class StatusRequestC2S(Packet):
 	_INSTANCE = None
 	def __new__(cls):
 		if cls._INSTANCE is None:
@@ -1275,7 +1279,7 @@ class StatusRequestC2S(Packet, id=0x00):
 		return cls()
 
 @final
-class StatusPingRequestC2S(Packet, id=0x01):
+class StatusPingRequestC2S(Packet):
 	def __init__(self,
 		payload: int, # Long
 	):
@@ -1290,7 +1294,7 @@ class StatusPingRequestC2S(Packet, id=0x01):
 		return cls(payload)
 
 @final
-class LoginDisconnectS2C(Packet, id=0x00):
+class LoginDisconnectS2C(Packet):
 	def __init__(self,
 		reason: dict, # Chat
 	):
@@ -1301,11 +1305,12 @@ class LoginDisconnectS2C(Packet, id=0x00):
 
 	@classmethod
 	def parse_from(cls, r: PacketReader) -> Self:
+		print('===== r:', r.read())
 		reason = r.read_json()
 		return cls(reason)
 
 @final
-class LoginEncryptionRequestS2C(Packet, id=0x01):
+class LoginEncryptionRequestS2C(Packet):
 	def __init__(self,
 		server_id: str, # String (20)
 		public_key: bytes, # Byte Array
@@ -1330,11 +1335,11 @@ class LoginEncryptionRequestS2C(Packet, id=0x01):
 		return cls(server_id, public_key, verify_token)
 
 @final
-class LoginSuccessS2C(Packet, id=0x02):
+class LoginSuccessS2C(Packet):
 	def __init__(self,
 		uuid: uuid.UUID, # UUID
 		username: str, # String (16)
-		properties: list[PlayerProperty],
+		properties: list[PlayerProperty], # Array of property
 	):
 		self.uuid = uuid
 		self.username = username
@@ -1358,7 +1363,7 @@ class LoginSuccessS2C(Packet, id=0x02):
 		return cls(uuid, username, properties)
 
 @final
-class LoginSetCompressionS2C(Packet, id=0x03):
+class LoginSetCompressionS2C(Packet):
 	def __init__(self,
 		threshold: int, # VarInt
 	):
@@ -1373,7 +1378,7 @@ class LoginSetCompressionS2C(Packet, id=0x03):
 		return cls(threshold)
 
 @final
-class LoginPluginRequestS2C(Packet, id=0x04):
+class LoginPluginRequestS2C(Packet):
 	def __init__(self,
 		message_id: int, # VarInt
 		channel: str, # Identifier
@@ -1396,7 +1401,7 @@ class LoginPluginRequestS2C(Packet, id=0x04):
 		return cls(message_id, channel, data)
 
 @final
-class LoginStartC2S(Packet, id=0x00):
+class LoginStartC2S(Packet):
 	def __init__(self,
 		name: str, # String (16)
 		has_player_uuid: bool, # Boolean
@@ -1421,7 +1426,7 @@ class LoginStartC2S(Packet, id=0x00):
 		return cls(name, has_player_uuid, player_uuid)
 
 @final
-class LoginEncryptionResponseC2S(Packet, id=0x01):
+class LoginEncryptionResponseC2S(Packet):
 	def __init__(self,
 		shared_secret: bytes, # Byte Array
 		verify_token: bytes, # Byte Array
@@ -1442,7 +1447,7 @@ class LoginEncryptionResponseC2S(Packet, id=0x01):
 		return cls(shared_secret, verify_token)
 
 @final
-class LoginPluginResponseC2S(Packet, id=0x02):
+class LoginPluginResponseC2S(Packet):
 	def __init__(self,
 		message_id: int, # VarInt
 		successful: bool, # Boolean
@@ -1467,7 +1472,25 @@ class LoginPluginResponseC2S(Packet, id=0x02):
 		return cls(message_id, successful, data)
 
 @final
-class PlaySpawnEntityS2C(Packet, id=0x00):
+class PlayBundleDelimiterS2C(Packet):
+	_INSTANCE = None
+	def __new__(cls):
+		if cls._INSTANCE is None:
+			cls._INSTANCE = super().__new__(cls)
+		return cls._INSTANCE
+
+	def __init__(self):
+		pass
+
+	def to_bytes(self, b: PacketBuffer):
+		pass
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		return cls()
+
+@final
+class PlaySpawnEntityS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		entity_uuid: uuid.UUID, # UUID
@@ -1530,7 +1553,7 @@ class PlaySpawnEntityS2C(Packet, id=0x00):
 		return cls(entity_id, entity_uuid, type, x, y, z, pitch, yaw, head_yaw, data, velocity_x, velocity_y, velocity_z)
 
 @final
-class PlaySpawnExperienceOrbS2C(Packet, id=0x01):
+class PlaySpawnExperienceOrbS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		x: float, # Double
@@ -1561,7 +1584,7 @@ class PlaySpawnExperienceOrbS2C(Packet, id=0x01):
 		return cls(entity_id, x, y, z, count)
 
 @final
-class PlaySpawnPlayerS2C(Packet, id=0x02):
+class PlaySpawnPlayerS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		player_uuid: uuid.UUID, # UUID
@@ -1600,7 +1623,7 @@ class PlaySpawnPlayerS2C(Packet, id=0x02):
 		return cls(entity_id, player_uuid, x, y, z, yaw, pitch)
 
 @final
-class PlayEntityAnimationS2C(Packet, id=0x03):
+class PlayEntityAnimationS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		animation: int, # Unsigned Byte
@@ -1619,7 +1642,7 @@ class PlayEntityAnimationS2C(Packet, id=0x03):
 		return cls(entity_id, animation)
 
 @final
-class PlayAwardStatisticsS2C(Packet, id=0x04):
+class PlayAwardStatisticsS2C(Packet):
 	def __init__(self,
 		statistics: list[
 			tuple[
@@ -1649,7 +1672,7 @@ class PlayAwardStatisticsS2C(Packet, id=0x04):
 		return cls(statistics)
 
 @final
-class PlayAcknowledgeBlockChangeS2C(Packet, id=0x05):
+class PlayAcknowledgeBlockChangeS2C(Packet):
 	def __init__(self,
 		sequence_id: int, # VarInt
 	):
@@ -1664,7 +1687,7 @@ class PlayAcknowledgeBlockChangeS2C(Packet, id=0x05):
 		return cls(sequence_id)
 
 @final
-class PlaySetBlockDestroyStageS2C(Packet, id=0x06):
+class PlaySetBlockDestroyStageS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		location: tuple[int, int, int], # Position
@@ -1687,7 +1710,7 @@ class PlaySetBlockDestroyStageS2C(Packet, id=0x06):
 		return cls(entity_id, location, destroy_stage)
 
 @final
-class PlayBlockEntityDataS2C(Packet, id=0x07):
+class PlayBlockEntityDataS2C(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		type: int, # VarInt
@@ -1706,11 +1729,11 @@ class PlayBlockEntityDataS2C(Packet, id=0x07):
 	def parse_from(cls, r: PacketReader) -> Self:
 		location = r.read_pos_1_14()
 		type = r.read_varint()
-		nbt_data = NBT.parse_from(r)
+		nbt_data = NBT.parse(r)
 		return cls(location, type, nbt_data)
 
 @final
-class PlayBlockActionS2C(Packet, id=0x08):
+class PlayBlockActionS2C(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		action_id: int, # Unsigned Byte
@@ -1737,7 +1760,7 @@ class PlayBlockActionS2C(Packet, id=0x08):
 		return cls(location, action_id, action_parameter, block_type)
 
 @final
-class PlayBlockUpdateS2C(Packet, id=0x09):
+class PlayBlockUpdateS2C(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		block_id: int, # VarInt
@@ -1756,7 +1779,7 @@ class PlayBlockUpdateS2C(Packet, id=0x09):
 		return cls(location, block_id)
 
 @final
-class PlayBossBarS2C(Packet, id=0x0A):
+class PlayBossBarS2C(Packet):
 	def __init__(self,
 		uuid: uuid.UUID, # UUID
 		action: int, # VarInt Enum
@@ -1808,7 +1831,7 @@ class PlayBossBarS2C(Packet, id=0x0A):
 		return cls(uuid, action, title, health, color, division, flags)
 
 @final
-class PlayChangeDifficultyS2C(Packet, id=0x0B):
+class PlayChangeDifficultyS2C(Packet):
 	def __init__(self,
 		difficulty: int, # Unsigned Byte
 		difficulty_locked: bool, # Boolean
@@ -1827,7 +1850,38 @@ class PlayChangeDifficultyS2C(Packet, id=0x0B):
 		return cls(difficulty, difficulty_locked)
 
 @final
-class PlayClearTitlesS2C(Packet, id=0x0C):
+class PlayChunkBiomesS2C(Packet):
+	def __init__(self,
+		chunk_biome_datas: list[
+			tuple[
+				int, # chunk_x; Int; Chunk coordinate (block coordinate divided by 16, rounded down)
+				int, # chunk_z; Int; Chunk coordinate (block coordinate divided by 16, rounded down)
+				bytes, # data; Byte array; Chunk data structure, with sections containing only the Biomes field
+			]
+		],
+	):
+		self.chunk_biome_datas = chunk_biome_datas
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_varint(len(self.chunk_biome_datas))
+		for (chunk_x, chunk_z, data) in self.chunk_biome_datas:
+			b.write_int(chunk_x)
+			b.write_int(chunk_z)
+			b.write_varint(len(data))
+			b.write(data)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		chunk_biome_datas = []
+		for _ in range(r.read_varint()):
+			chunk_x = r.read_int()
+			chunk_z = r.read_int()
+			data = r.read(r.read_varint())
+			chunk_biome_datas.append((chunk_x, chunk_z, data))
+		return cls(chunk_biome_datas)
+
+@final
+class PlayClearTitlesS2C(Packet):
 	def __init__(self,
 		reset: bool, # Boolean
 	):
@@ -1842,7 +1896,7 @@ class PlayClearTitlesS2C(Packet, id=0x0C):
 		return cls(reset)
 
 @final
-class PlayCommandSuggestionsResponseS2C(Packet, id=0x0D):
+class PlayCommandSuggestionsResponseS2C(Packet):
 	def __init__(self,
 		id: int, # VarInt
 		start: int, # VarInt
@@ -1886,7 +1940,7 @@ class PlayCommandSuggestionsResponseS2C(Packet, id=0x0D):
 		return cls(id, start, length, matches)
 
 @final
-class PlayCommandsS2C(Packet, id=0x0E):
+class PlayCommandsS2C(Packet):
 	def __init__(self,
 		nodes: list[Node], # Array of Node
 		root_index: int, # VarInt
@@ -1910,7 +1964,7 @@ class PlayCommandsS2C(Packet, id=0x0E):
 		return cls(nodes, root_index)
 
 @final
-class PlayCloseContainerS2C(Packet, id=0x0F):
+class PlayCloseContainerS2C(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 	):
@@ -1925,7 +1979,7 @@ class PlayCloseContainerS2C(Packet, id=0x0F):
 		return cls(window_id)
 
 @final
-class PlaySetContainerContentS2C(Packet, id=0x10):
+class PlaySetContainerContentS2C(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 		state_id: int, # VarInt
@@ -1954,7 +2008,7 @@ class PlaySetContainerContentS2C(Packet, id=0x10):
 		return cls(window_id, state_id, slot_data, carried_item)
 
 @final
-class PlaySetContainerPropertyS2C(Packet, id=0x11):
+class PlaySetContainerPropertyS2C(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 		property: int, # Short
@@ -1977,7 +2031,7 @@ class PlaySetContainerPropertyS2C(Packet, id=0x11):
 		return cls(window_id, property, value)
 
 @final
-class PlaySetContainerSlotS2C(Packet, id=0x12):
+class PlaySetContainerSlotS2C(Packet):
 	def __init__(self,
 		window_id: int, # Byte
 		state_id: int, # VarInt
@@ -2004,7 +2058,7 @@ class PlaySetContainerSlotS2C(Packet, id=0x12):
 		return cls(window_id, state_id, slot, slot_data)
 
 @final
-class PlaySetCooldownS2C(Packet, id=0x13):
+class PlaySetCooldownS2C(Packet):
 	def __init__(self,
 		item_id: int, # VarInt
 		cooldown_ticks: int, # VarInt
@@ -2023,7 +2077,7 @@ class PlaySetCooldownS2C(Packet, id=0x13):
 		return cls(item_id, cooldown_ticks)
 
 @final
-class PlayChatSuggestionsS2C(Packet, id=0x14):
+class PlayChatSuggestionsS2C(Packet):
 	def __init__(self,
 		action: int, # VarInt Enum
 		entries: list[str], # Array of String
@@ -2044,7 +2098,7 @@ class PlayChatSuggestionsS2C(Packet, id=0x14):
 		return cls(action, entries)
 
 @final
-class PlayPluginMessageS2C(Packet, id=0x15):
+class PlayPluginMessageS2C(Packet):
 	def __init__(self,
 		channel: str, # Identifier
 		data: bytes, # Byte Array (1048576)
@@ -2063,7 +2117,59 @@ class PlayPluginMessageS2C(Packet, id=0x15):
 		return cls(channel, data)
 
 @final
-class PlayDeleteMessageS2C(Packet, id=0x16):
+class PlayDamageEventS2C(Packet):
+	def __init__(self,
+		entity_id: int, # VarInt
+		source_type_id: int, # VarInt
+		source_cause_id: int, # VarInt
+		source_direct_id: int, # VarInt
+		has_source_position: bool, # Boolean
+		source_position_x: float | None, # Optional Double
+		source_position_y: float | None, # Optional Double
+		source_position_z: float | None, # Optional Double
+	):
+		self.entity_id = entity_id # The ID of the entity taking damage
+		self.source_type_id = source_type_id # The ID of the type of damage taken
+		self.source_cause_id = source_cause_id # The ID + 1 of the entity responsible for the damage, if present. If not present, the value is 0
+		self.source_direct_id = source_direct_id # The ID + 1 of the entity that directly dealt the damage, if present. If not present, the value is 0. If this field is present: and damage was dealt indirectly, such as by the use of a projectile, this field will contain the ID of such projectile; and damage was dealt dirctly, such as by manually attacking, this field will contain the same value as Source Cause ID.
+		self.has_source_position = has_source_position # Indicates the presence of the three following fields. The Notchian server sends the Source Position when the damage was dealt by the /damage command and a position was specified
+		self.source_position_x = source_position_x # Only present if Has Source Position is true
+		self.source_position_y = source_position_y # Only present if Has Source Position is true
+		self.source_position_z = source_position_z # Only present if Has Source Position is true
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_varint(self.entity_id)
+		b.write_varint(self.source_type_id)
+		b.write_varint(self.source_cause_id)
+		b.write_varint(self.source_direct_id)
+		b.write_bool(self.has_source_position)
+		if self.has_source_position:
+			assert self.source_position_x is not None
+			assert self.source_position_y is not None
+			assert self.source_position_z is not None
+			b.write_double(self.source_position_x)
+			b.write_double(self.source_position_y)
+			b.write_double(self.source_position_z)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		entity_id = r.read_varint()
+		source_type_id = r.read_varint()
+		source_cause_id = r.read_varint()
+		source_direct_id = r.read_varint()
+		has_source_position = r.read_bool()
+		if has_source_position:
+			source_position_x = r.read_double()
+			source_position_y = r.read_double()
+			source_position_z = r.read_double()
+		else:
+			source_position_x = None
+			source_position_y = None
+			source_position_z = None
+		return cls(entity_id, source_type_id, source_cause_id, source_direct_id, has_source_position, source_position_x, source_position_y, source_position_z)
+
+@final
+class PlayDeleteMessageS2C(Packet):
 	def __init__(self,
 		signature: bytes, # Byte Array
 	):
@@ -2079,7 +2185,7 @@ class PlayDeleteMessageS2C(Packet, id=0x16):
 		return cls(signature)
 
 @final
-class PlayDisconnectS2C(Packet, id=0x17):
+class PlayDisconnectS2C(Packet):
 	def __init__(self,
 		reason: dict, # Chat
 	):
@@ -2094,7 +2200,7 @@ class PlayDisconnectS2C(Packet, id=0x17):
 		return cls(reason)
 
 @final
-class PlayDisguisedChatMessageS2C(Packet, id=0x18):
+class PlayDisguisedChatMessageS2C(Packet):
 	def __init__(self,
 		message: dict, # Chat
 		chat_type: int, # VarInt
@@ -2127,7 +2233,7 @@ class PlayDisguisedChatMessageS2C(Packet, id=0x18):
 		return cls(message, chat_type, chat_type_name, has_target_name, target_name)
 
 @final
-class PlayEntityEventS2C(Packet, id=0x19):
+class PlayEntityEventS2C(Packet):
 	def __init__(self,
 		entity_id: int, # Int
 		entity_status: int, # Byte Enum
@@ -2146,7 +2252,7 @@ class PlayEntityEventS2C(Packet, id=0x19):
 		return cls(entity_id, entity_status)
 
 @final
-class PlayExplosionS2C(Packet, id=0x1A):
+class PlayExplosionS2C(Packet):
 	def __init__(self,
 		x: float, # Double
 		y: float, # Double
@@ -2200,7 +2306,7 @@ class PlayExplosionS2C(Packet, id=0x1A):
 		return cls(x, y, z, strength, records, player_motion_x, player_motion_y, player_motion_z)
 
 @final
-class PlayUnloadChunkS2C(Packet, id=0x1B):
+class PlayUnloadChunkS2C(Packet):
 	def __init__(self,
 		chunk_x: int, # Int
 		chunk_z: int, # Int
@@ -2219,7 +2325,7 @@ class PlayUnloadChunkS2C(Packet, id=0x1B):
 		return cls(chunk_x, chunk_z)
 
 @final
-class PlayGameEventS2C(Packet, id=0x1C):
+class PlayGameEventS2C(Packet):
 	def __init__(self,
 		event: int, # Unsigned Byte
 		value: float, # Float
@@ -2238,7 +2344,7 @@ class PlayGameEventS2C(Packet, id=0x1C):
 		return cls(event, value)
 
 @final
-class PlayOpenHorseScreenS2C(Packet, id=0x1D):
+class PlayOpenHorseScreenS2C(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 		slot_count: int, # VarInt
@@ -2261,7 +2367,26 @@ class PlayOpenHorseScreenS2C(Packet, id=0x1D):
 		return cls(window_id, slot_count, entity_id)
 
 @final
-class PlayInitializeWorldBorderS2C(Packet, id=0x1E):
+class PlayHurtAnimationS2C(Packet):
+	def __init__(self,
+		entity_id: int, # VarInt
+		yaw: float, # Float
+	):
+		self.entity_id = entity_id # The ID of the entity taking damage
+		self.yaw = yaw # The direction the damage is coming from in relation to the entity
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_varint(self.entity_id)
+		b.write_float(self.yaw)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		entity_id = r.read_varint()
+		yaw = r.read_float()
+		return cls(entity_id, yaw)
+
+@final
+class PlayInitializeWorldBorderS2C(Packet):
 	def __init__(self,
 		x: float, # Double
 		z: float, # Double
@@ -2304,7 +2429,7 @@ class PlayInitializeWorldBorderS2C(Packet, id=0x1E):
 		return cls(x, z, old_diameter, new_diameter, speed, portal_teleport_boundary, warning_blocks, warning_time)
 
 @final
-class PlayKeepAliveS2C(Packet, id=0x1F):
+class PlayKeepAliveS2C(Packet):
 	def __init__(self,
 		keep_alive_id: int, # Long
 	):
@@ -2319,7 +2444,7 @@ class PlayKeepAliveS2C(Packet, id=0x1F):
 		return cls(keep_alive_id)
 
 @final
-class PlayChunkDataandUpdateLightS2C(Packet, id=0x20):
+class PlayChunkDataandUpdateLightS2C(Packet):
 	def __init__(self,
 		chunk_x: int, # Int
 		chunk_z: int, # Int
@@ -2388,14 +2513,14 @@ class PlayChunkDataandUpdateLightS2C(Packet, id=0x20):
 	def parse_from(cls, r: PacketReader) -> Self:
 		chunk_x = r.read_int()
 		chunk_z = r.read_int()
-		heightmaps = NBT.parse_from(r)
+		heightmaps = NBT.parse(r)
 		data = r.read(r.read_varint())
 		block_entities = []
 		for _ in range(r.read_varint()):
 			packed_xz = r.read_byte()
 			y = r.read_short()
 			type = r.read_varint()
-			dta = NBT.parse_from(r)
+			dta = NBT.parse(r)
 			block_entities.append((packed_xz, y, type, dta))
 		trust_edges = r.read_bool()
 		sky_light_mask = BitSet.parse_from(r)
@@ -2419,7 +2544,7 @@ class PlayChunkDataandUpdateLightS2C(Packet, id=0x20):
 		return cls(chunk_x, chunk_z, heightmaps, data, block_entities, trust_edges, sky_light_mask, block_light_mask, empty_sky_light_mask, empty_block_light_mask, sky_light_arrays, block_light_arrays)
 
 @final
-class PlayWorldEventS2C(Packet, id=0x21):
+class PlayWorldEventS2C(Packet):
 	def __init__(self,
 		event: int, # Int
 		location: tuple[int, int, int], # Position
@@ -2446,7 +2571,7 @@ class PlayWorldEventS2C(Packet, id=0x21):
 		return cls(event, location, data, disable_relative_volume)
 
 @final
-class PlayParticleS2C(Packet, id=0x22):
+class PlayParticleS2C(Packet):
 	def __init__(self,
 		particle_id: int, # VarInt
 		long_distance: bool, # Boolean
@@ -2471,7 +2596,7 @@ class PlayParticleS2C(Packet, id=0x22):
 		self.particles = particles
 
 @final
-class PlayUpdateLightS2C(Packet, id=0x23):
+class PlayUpdateLightS2C(Packet):
 	def __init__(self,
 		chunk_x: int, # VarInt
 		chunk_z: int, # VarInt
@@ -2540,7 +2665,7 @@ class PlayUpdateLightS2C(Packet, id=0x23):
 		return cls(chunk_x, chunk_z, trust_edges, sky_light_mask, block_light_mask, empty_sky_light_mask, empty_block_light_mask, sky_light_arrays, block_light_arrays)
 
 @final
-class PlayLoginS2C(Packet, id=0x24):
+class PlayLoginS2C(Packet):
 	def __init__(self,
 		entity_id: int, # Int
 		is_hardcore: bool, # Boolean
@@ -2639,7 +2764,7 @@ class PlayLoginS2C(Packet, id=0x24):
 		return cls(entity_id, is_hardcore, gamemode, previous_gamemode, dimension_names, registry_codec, dimension_type, dimension_name, hashed_seed, max_players, view_distance, simulation_distance, reduced_debug_info, enable_respawn_screen, is_debug, is_flat, has_death_location, death_dimension_name, death_location)
 
 @final
-class PlayMapDataS2C(Packet, id=0x25):
+class PlayMapDataS2C(Packet):
 	def __init__(self,
 		map_id: int, # VarInt
 		scale: int, # Byte
@@ -2743,7 +2868,7 @@ class PlayMapDataS2C(Packet, id=0x25):
 		return cls(map_id, scale, locked, has_icons, icons, columns, rows, x, z, length, data)
 
 @final
-class PlayMerchantOffersS2C(Packet, id=0x26):
+class PlayMerchantOffersS2C(Packet):
 	def __init__(self,
 		window_id: int, # VarInt
 		trades: list[
@@ -2814,7 +2939,7 @@ class PlayMerchantOffersS2C(Packet, id=0x26):
 		return cls(window_id, trades, villager_level, experience, is_regular_villager, can_restock)
 
 @final
-class PlayUpdateEntityPositionS2C(Packet, id=0x27):
+class PlayUpdateEntityPositionS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		delta_x: int, # Short
@@ -2845,7 +2970,7 @@ class PlayUpdateEntityPositionS2C(Packet, id=0x27):
 		return cls(entity_id, delta_x, delta_y, delta_z, on_ground)
 
 @final
-class PlayUpdateEntityPositionandRotationS2C(Packet, id=0x28):
+class PlayUpdateEntityPositionandRotationS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		delta_x: int, # Short
@@ -2884,7 +3009,7 @@ class PlayUpdateEntityPositionandRotationS2C(Packet, id=0x28):
 		return cls(entity_id, delta_x, delta_y, delta_z, yaw, pitch, on_ground)
 
 @final
-class PlayUpdateEntityRotationS2C(Packet, id=0x29):
+class PlayUpdateEntityRotationS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		yaw: int, # Angle
@@ -2911,7 +3036,7 @@ class PlayUpdateEntityRotationS2C(Packet, id=0x29):
 		return cls(entity_id, yaw, pitch, on_ground)
 
 @final
-class PlayMoveVehicleS2C(Packet, id=0x2A):
+class PlayMoveVehicleS2C(Packet):
 	def __init__(self,
 		x: float, # Double
 		y: float, # Double
@@ -2942,7 +3067,7 @@ class PlayMoveVehicleS2C(Packet, id=0x2A):
 		return cls(x, y, z, yaw, pitch)
 
 @final
-class PlayOpenBookS2C(Packet, id=0x2B):
+class PlayOpenBookS2C(Packet):
 	def __init__(self,
 		hand: int, # VarInt Enum
 	):
@@ -2957,7 +3082,7 @@ class PlayOpenBookS2C(Packet, id=0x2B):
 		return cls(hand)
 
 @final
-class PlayOpenScreenS2C(Packet, id=0x2C):
+class PlayOpenScreenS2C(Packet):
 	def __init__(self,
 		window_id: int, # VarInt
 		window_type: int, # VarInt
@@ -2980,7 +3105,7 @@ class PlayOpenScreenS2C(Packet, id=0x2C):
 		return cls(window_id, window_type, window_title)
 
 @final
-class PlayOpenSignEditorS2C(Packet, id=0x2D):
+class PlayOpenSignEditorS2C(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 	):
@@ -2995,7 +3120,7 @@ class PlayOpenSignEditorS2C(Packet, id=0x2D):
 		return cls(location)
 
 @final
-class PlayPingS2C(Packet, id=0x2E):
+class PlayPingS2C(Packet):
 	def __init__(self,
 		id: int, # Int
 	):
@@ -3010,7 +3135,7 @@ class PlayPingS2C(Packet, id=0x2E):
 		return cls(id)
 
 @final
-class PlayPlaceGhostRecipeS2C(Packet, id=0x2F):
+class PlayPlaceGhostRecipeS2C(Packet):
 	def __init__(self,
 		window_id: int, # Byte
 		recipe: str, # Identifier
@@ -3029,7 +3154,7 @@ class PlayPlaceGhostRecipeS2C(Packet, id=0x2F):
 		return cls(window_id, recipe)
 
 @final
-class PlayerAbilitiesS2C(Packet, id=0x30):
+class PlayerAbilitiesS2C(Packet):
 	def __init__(self,
 		flags: int, # Byte
 		flying_speed: float, # Float
@@ -3052,7 +3177,108 @@ class PlayerAbilitiesS2C(Packet, id=0x30):
 		return cls(flags, flying_speed, field_of_view_modifier)
 
 @final
-class PlayEndCombatS2C(Packet, id=0x32):
+class PlayerChatMessage(Packet):
+	def __init__(self,
+		sender: uuid.UUID, # UUID
+		index: int, # VarInt
+		message_signature_present: bool, # Boolean
+		message_signature_bytes: bytes | None, # Optional Byte Array (256)
+		message: str, # String
+		timestamp: int, # Long
+		salt: int, # Long
+		previous_messages: list[
+			tuple[
+				int, # Message ID; VarInt; The message Id, used for validating message signature.
+				bytes | None, # Signature; Optional Byte Array; The previous message's signature. Contains the same type of data as Message Signature bytes above.
+			]
+		],
+		unsigned_content_present: bool, # Boolean
+		unsigned_content: dict | None, # Optional Chat
+		filter_type: int, # Enum VarInt
+		filter_type_bits: BitSet | None, # Optional BitSet
+		chat_type: int, # VarInt
+		network_name: dict, # Chat
+		network_target_name_present: bool, # Boolean
+		network_target_name: dict | None, # Optional Chat
+	):
+		self.sender = sender # Used by the Notchian client for the disableChat launch option. Setting both longs to 0 will always display the message regardless of the setting.
+		self.index = index #
+		self.message_signature_present = message_signature_present
+		self.message_signature_bytes = message_signature_bytes # Only present if Message Signature Present is true. Cryptography, the signature consists of the Sender UUID, Session UUID from the Player Session packet, Index, Salt, Timestamp in epoch seconds, the length of the original chat content, the original content itself, the length of Previous Messages, and all of the Previous message signatures. These values are hashed with SHA-256 and signed using the RSA cryptosystem. Modifying any of these values in the packet will cause this signature to fail. This buffer is always 256 bytes long.
+		self.message = message
+		self.timestamp = timestamp # Represents the time the message was signed as milliseconds since the epoch, used to check if the message was received within 2 minutes of it being sent.
+		self.salt = salt
+		self.previous_messages = previous_messages
+		self.unsigned_content_present = unsigned_content_present
+		self.unsigned_content = unsigned_content
+		# 0; PASS_THROUGH; No filters applied
+		# 1; FULLY_FILTERED; All filters applied
+		# 2; PARTIALLY_FILTERED; Only some filters are applied.
+		self.filter_type = filter_type # If the message has been filtered
+		self.filter_type_bits = filter_type_bits
+		self.chat_type = chat_type # The chat type from the Login (play) packet used for this message
+		self.network_name = network_name
+		self.network_target_name_present = network_target_name_present
+		self.network_target_name = network_target_name
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_uuid(self.sender)
+		b.write_varint(self.index)
+		b.write_bool(self.message_signature_present)
+		if self.message_signature_present:
+			assert self.message_signature_bytes is not None
+			b.write(self.message_signature_bytes)
+		b.write_string(self.message)
+		b.write_long(self.timestamp)
+		b.write_long(self.salt)
+		b.write_varint(len(self.previous_messages))
+		for (message_id, signature) in self.previous_messages:
+			b.write_varint(message_id)
+			if self.message_signature_present:
+				assert signature is not None
+				b.write(signature)
+		b.write_bool(self.unsigned_content_present)
+		if self.unsigned_content_present:
+			assert self.unsigned_content is not None
+			b.write_json(self.unsigned_content)
+		b.write_varint(self.filter_type)
+		if self.filter_type == 2: # TODO: probably?
+			assert self.filter_type_bits is not None
+			self.filter_type_bits.to_bytes(b)
+		b.write_varint(self.chat_type)
+		b.write_json(self.network_name)
+		b.write_bool(self.network_target_name_present)
+		if self.network_target_name_present:
+			assert self.network_target_name is not None
+			b.write_json(self.network_target_name)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		sender = r.read_uuid()
+		index = r.read_varint()
+		message_signature_present = r.read_bool()
+		message_signature_bytes = r.read(256) if message_signature_present else None
+		message = r.read_string()
+		timestamp = r.read_long()
+		salt = r.read_long()
+		previous_messages = []
+		for _ in range(r.read_varint()):
+			message_id = r.read_varint()
+			signature = r.read(256) if message_signature_present else None
+			previous_messages.append((message_id, signature))
+		unsigned_content_present = r.read_bool()
+		unsigned_content = r.read_json() if unsigned_content_present else None
+		filter_type = r.read_varint()
+		filter_type_bits = BitSet.parse_from(r) if filter_type == 2 else None
+		chat_type = r.read_varint()
+		network_name = r.read_json()
+		network_target_name_present = r.read_bool()
+		network_target_name = r.read_json() if network_target_name_present else None
+		return cls(sender, index, message_signature_present, message_signature_bytes, message, timestamp, salt, previous_messages, unsigned_content_present, unsigned_content, filter_type, filter_type_bits, chat_type, network_name, network_target_name_present, network_target_name)
+
+
+@final
+class PlayEndCombatS2C(Packet):
 	def __init__(self,
 		duration: int, # VarInt
 		entity_id: int, # Int
@@ -3071,7 +3297,7 @@ class PlayEndCombatS2C(Packet, id=0x32):
 		return cls(duration, entity_id)
 
 @final
-class PlayEnterCombatS2C(Packet, id=0x33):
+class PlayEnterCombatS2C(Packet):
 	_INSTANCE = None
 	def __new__(cls):
 		if cls._INSTANCE is None:
@@ -3089,7 +3315,7 @@ class PlayEnterCombatS2C(Packet, id=0x33):
 		return cls()
 
 @final
-class PlayCombatDeathS2C(Packet, id=0x34):
+class PlayCombatDeathS2C(Packet):
 	def __init__(self,
 		player_id: int, # VarInt
 		entity_id: int, # Int
@@ -3112,7 +3338,7 @@ class PlayCombatDeathS2C(Packet, id=0x34):
 		return cls(player_id, entity_id, message)
 
 @final
-class PlayerInfoRemoveS2C(Packet, id=0x35):
+class PlayerInfoRemoveS2C(Packet):
 	def __init__(self,
 		players: list[uuid.UUID], # Array of UUID
 	):
@@ -3132,7 +3358,7 @@ class PlayerInfoRemoveS2C(Packet, id=0x35):
 		return cls(players)
 
 @final
-class PlayerInfoUpdateS2C(Packet, id=0x36):
+class PlayerInfoUpdateS2C(Packet):
 	def __init__(self,
 		actions: int, # Byte
 		action_array: list[Action], # Array Of Action
@@ -3156,7 +3382,7 @@ class PlayerInfoUpdateS2C(Packet, id=0x36):
 		return cls(actions, action_array)
 
 @final
-class PlayLookAtS2C(Packet, id=0x37):
+class PlayLookAtS2C(Packet):
 	def __init__(self,
 		feet_eyes: int, # VarInt Enum
 		target_x: float, # Double
@@ -3202,7 +3428,7 @@ class PlayLookAtS2C(Packet, id=0x37):
 		return cls(feet_eyes, target_x, target_y, target_z, is_entity, entity_id, entity_feet_eyes)
 
 @final
-class PlaySynchronizePlayerPositionS2C(Packet, id=0x38):
+class PlaySynchronizePlayerPositionS2C(Packet):
 	def __init__(self,
 		x: float, # Double
 		y: float, # Double
@@ -3245,7 +3471,7 @@ class PlaySynchronizePlayerPositionS2C(Packet, id=0x38):
 		return cls(x, y, z, yaw, pitch, flags, teleport_id, dismount_vehicle)
 
 @final
-class PlayUpdateRecipeBookS2C(Packet, id=0x39):
+class PlayUpdateRecipeBookS2C(Packet):
 	def __init__(self,
 		action: int, # VarInt
 		crafting_recipe_book_open: bool, # Boolean
@@ -3315,7 +3541,7 @@ class PlayUpdateRecipeBookS2C(Packet, id=0x39):
 		return cls(action, crafting_recipe_book_open, crafting_recipe_book_filter_active, smelting_recipe_book_open, smelting_recipe_book_filter_active, blast_furnace_recipe_book_open, blast_furnace_recipe_book_filter_active, smoker_recipe_book_open, smoker_recipe_book_filter_active, recipe_ids, recipe_ids_2)
 
 @final
-class PlayRemoveEntitiesS2C(Packet, id=0x3A):
+class PlayRemoveEntitiesS2C(Packet):
 	def __init__(self,
 		entity_ids: list[int], # Array of VarInt
 	):
@@ -3332,7 +3558,7 @@ class PlayRemoveEntitiesS2C(Packet, id=0x3A):
 		return cls(entity_ids)
 
 @final
-class PlayRemoveEntityEffectS2C(Packet, id=0x3B):
+class PlayRemoveEntityEffectS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		effect_id: int, # VarInt
@@ -3351,7 +3577,7 @@ class PlayRemoveEntityEffectS2C(Packet, id=0x3B):
 		return cls(entity_id, effect_id)
 
 @final
-class PlayResourcePackS2C(Packet, id=0x3C):
+class PlayResourcePackS2C(Packet):
 	def __init__(self,
 		url: str, # String (32767)
 		hash: str, # String (40)
@@ -3384,7 +3610,7 @@ class PlayResourcePackS2C(Packet, id=0x3C):
 		return cls(url, hash, forced, has_prompt_message, prompt_message)
 
 @final
-class PlayRespawnS2C(Packet, id=0x3D):
+class PlayRespawnS2C(Packet):
 	def __init__(self,
 		dimension_type: str, # Identifier
 		dimension_name: str, # Identifier
@@ -3446,7 +3672,7 @@ class PlayRespawnS2C(Packet, id=0x3D):
 		return cls(dimension_type, dimension_name, hashed_seed, gamemode, previous_gamemode, is_debug, is_flat, copy_metadata, has_death_location, death_dimension_name, death_location)
 
 @final
-class PlaySetHeadRotationS2C(Packet, id=0x3E):
+class PlaySetHeadRotationS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		head_yaw: int, # Angle
@@ -3465,7 +3691,7 @@ class PlaySetHeadRotationS2C(Packet, id=0x3E):
 		return cls(entity_id, head_yaw)
 
 @final
-class PlayUpdateSectionBlocksS2C(Packet, id=0x3F):
+class PlayUpdateSectionBlocksS2C(Packet):
 	def __init__(self,
 		chunk_section_position: int, # Long
 		suppress_light_updates: bool, # Boolean
@@ -3490,7 +3716,7 @@ class PlayUpdateSectionBlocksS2C(Packet, id=0x3F):
 		return cls(chunk_section_position, suppress_light_updates, blocks)
 
 @final
-class PlaySelectAdvancementsTabS2C(Packet, id=0x40):
+class PlaySelectAdvancementsTabS2C(Packet):
 	def __init__(self,
 		has_id: bool, # Boolean
 		optional_identifier: str, # Identifier
@@ -3509,7 +3735,7 @@ class PlaySelectAdvancementsTabS2C(Packet, id=0x40):
 		return cls(has_id, optional_identifier)
 
 @final
-class PlayServerDataS2C(Packet, id=0x41):
+class PlayServerDataS2C(Packet):
 	def __init__(self,
 		has_motd: bool, # Boolean
 		motd: dict | None, # Optional Chat
@@ -3544,7 +3770,7 @@ class PlayServerDataS2C(Packet, id=0x41):
 		return cls(has_motd, motd, has_icon, icon, enforces_secure_chat)
 
 @final
-class PlaySetActionBarTextS2C(Packet, id=0x42):
+class PlaySetActionBarTextS2C(Packet):
 	def __init__(self,
 		action_bar_text: dict, # Chat
 	):
@@ -3559,7 +3785,7 @@ class PlaySetActionBarTextS2C(Packet, id=0x42):
 		return cls(action_bar_text)
 
 @final
-class PlaySetBorderCenterS2C(Packet, id=0x43):
+class PlaySetBorderCenterS2C(Packet):
 	def __init__(self,
 		x: float, # Double
 		z: float, # Double
@@ -3578,7 +3804,7 @@ class PlaySetBorderCenterS2C(Packet, id=0x43):
 		return cls(x, z)
 
 @final
-class PlaySetBorderLerpSizeS2C(Packet, id=0x44):
+class PlaySetBorderLerpSizeS2C(Packet):
 	def __init__(self,
 		old_diameter: float, # Double
 		new_diameter: float, # Double
@@ -3601,7 +3827,7 @@ class PlaySetBorderLerpSizeS2C(Packet, id=0x44):
 		return cls(old_diameter, new_diameter, speed)
 
 @final
-class PlaySetBorderSizeS2C(Packet, id=0x45):
+class PlaySetBorderSizeS2C(Packet):
 	def __init__(self,
 		diameter: float, # Double
 	):
@@ -3616,7 +3842,7 @@ class PlaySetBorderSizeS2C(Packet, id=0x45):
 		return cls(diameter)
 
 @final
-class PlaySetBorderWarningDelayS2C(Packet, id=0x46):
+class PlaySetBorderWarningDelayS2C(Packet):
 	def __init__(self,
 		warning_time: int, # VarInt
 	):
@@ -3631,7 +3857,7 @@ class PlaySetBorderWarningDelayS2C(Packet, id=0x46):
 		return cls(warning_time)
 
 @final
-class PlaySetBorderWarningDistanceS2C(Packet, id=0x47):
+class PlaySetBorderWarningDistanceS2C(Packet):
 	def __init__(self,
 		warning_blocks: int, # VarInt
 	):
@@ -3646,7 +3872,7 @@ class PlaySetBorderWarningDistanceS2C(Packet, id=0x47):
 		return cls(warning_blocks)
 
 @final
-class PlaySetCameraS2C(Packet, id=0x48):
+class PlaySetCameraS2C(Packet):
 	def __init__(self,
 		camera_id: int, # VarInt
 	):
@@ -3661,7 +3887,7 @@ class PlaySetCameraS2C(Packet, id=0x48):
 		return cls(camera_id)
 
 @final
-class PlaySetHeldItemS2C(Packet, id=0x49):
+class PlaySetHeldItemS2C(Packet):
 	def __init__(self,
 		slot: int, # Byte
 	):
@@ -3676,7 +3902,7 @@ class PlaySetHeldItemS2C(Packet, id=0x49):
 		return cls(slot)
 
 @final
-class PlaySetCenterChunkS2C(Packet, id=0x4A):
+class PlaySetCenterChunkS2C(Packet):
 	def __init__(self,
 		chunk_x: int, # VarInt
 		chunk_z: int, # VarInt
@@ -3695,7 +3921,7 @@ class PlaySetCenterChunkS2C(Packet, id=0x4A):
 		return cls(chunk_x, chunk_z)
 
 @final
-class PlaySetRenderDistanceS2C(Packet, id=0x4B):
+class PlaySetRenderDistanceS2C(Packet):
 	def __init__(self,
 		view_distance: int, # VarInt
 	):
@@ -3710,7 +3936,7 @@ class PlaySetRenderDistanceS2C(Packet, id=0x4B):
 		return cls(view_distance)
 
 @final
-class PlaySetDefaultSpawnPositionS2C(Packet, id=0x4C):
+class PlaySetDefaultSpawnPositionS2C(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		angle: float, # Float
@@ -3729,7 +3955,7 @@ class PlaySetDefaultSpawnPositionS2C(Packet, id=0x4C):
 		return cls(location, angle)
 
 @final
-class PlayDisplayObjectiveS2C(Packet, id=0x4D):
+class PlayDisplayObjectiveS2C(Packet):
 	def __init__(self,
 		position: int, # Byte
 		score_name: str, # String (16)
@@ -3748,7 +3974,7 @@ class PlayDisplayObjectiveS2C(Packet, id=0x4D):
 		return cls(position, score_name)
 
 @final
-class PlaySetEntityMetadataS2C(Packet, id=0x4E):
+class PlaySetEntityMetadataS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		metadata: EntityMetadata, # Entity Metadata
@@ -3767,7 +3993,7 @@ class PlaySetEntityMetadataS2C(Packet, id=0x4E):
 		return cls(entity_id, metadata)
 
 @final
-class PlayLinkEntitiesS2C(Packet, id=0x4F):
+class PlayLinkEntitiesS2C(Packet):
 	def __init__(self,
 		attached_entity_id: int, # Int
 		holding_entity_id: int, # Int
@@ -3786,7 +4012,7 @@ class PlayLinkEntitiesS2C(Packet, id=0x4F):
 		return cls(attached_entity_id, holding_entity_id)
 
 @final
-class PlaySetEntityVelocityS2C(Packet, id=0x50):
+class PlaySetEntityVelocityS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		velocity_x: int, # Short
@@ -3813,7 +4039,7 @@ class PlaySetEntityVelocityS2C(Packet, id=0x50):
 		return cls(entity_id, velocity_x, velocity_y, velocity_z)
 
 @final
-class PlaySetEquipmentS2C(Packet, id=0x51):
+class PlaySetEquipmentS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		equipments: list[
@@ -3843,7 +4069,7 @@ class PlaySetEquipmentS2C(Packet, id=0x51):
 		return cls(entity_id, equipments)
 
 @final
-class PlaySetExperienceS2C(Packet, id=0x52):
+class PlaySetExperienceS2C(Packet):
 	def __init__(self,
 		experience_bar: float, # Float
 		total_experience: int, # VarInt
@@ -3866,7 +4092,7 @@ class PlaySetExperienceS2C(Packet, id=0x52):
 		return cls(experience_bar, total_experience, level)
 
 @final
-class PlaySetHealthS2C(Packet, id=0x53):
+class PlaySetHealthS2C(Packet):
 	def __init__(self,
 		health: float, # Float
 		food: int, # VarInt
@@ -3889,7 +4115,7 @@ class PlaySetHealthS2C(Packet, id=0x53):
 		return cls(health, food, food_saturation)
 
 @final
-class PlayUpdateObjectivesS2C(Packet, id=0x54):
+class PlayUpdateObjectivesS2C(Packet):
 	def __init__(self,
 		objective_name: str, # String (16)
 		mode: int, # Byte
@@ -3923,7 +4149,7 @@ class PlayUpdateObjectivesS2C(Packet, id=0x54):
 		return cls(objective_name, mode, objective_value, type)
 
 @final
-class PlaySetPassengersS2C(Packet, id=0x55):
+class PlaySetPassengersS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		passengers: list[int], # Array of VarInt
@@ -3947,7 +4173,7 @@ class PlaySetPassengersS2C(Packet, id=0x55):
 		return cls(entity_id, passengers)
 
 @final
-class PlayUpdateTeamsS2C(Packet, id=0x56):
+class PlayUpdateTeamsS2C(Packet):
 	def __init__(self,
 		team_name: str, # String (16)
 		mode: int, # Byte
@@ -4025,7 +4251,7 @@ class PlayUpdateTeamsS2C(Packet, id=0x56):
 		return cls(team_name, mode, team_display_name, friendly_flags, name_tag_visibility, collision_rule, team_color, team_prefix, team_suffix, entities)
 
 @final
-class PlayUpdateScoreS2C(Packet, id=0x57):
+class PlayUpdateScoreS2C(Packet):
 	def __init__(self,
 		entity_name: str, # String (40)
 		action: int, # VarInt Enum
@@ -4054,7 +4280,7 @@ class PlayUpdateScoreS2C(Packet, id=0x57):
 		return cls(entity_name, action, objective_name, value)
 
 @final
-class PlaySetSimulationDistanceS2C(Packet, id=0x58):
+class PlaySetSimulationDistanceS2C(Packet):
 	def __init__(self,
 		simulation_distance: int, # VarInt
 	):
@@ -4069,7 +4295,7 @@ class PlaySetSimulationDistanceS2C(Packet, id=0x58):
 		return cls(simulation_distance)
 
 @final
-class PlaySetSubtitleTextS2C(Packet, id=0x59):
+class PlaySetSubtitleTextS2C(Packet):
 	def __init__(self,
 		subtitle_text: dict, # Chat
 	):
@@ -4084,7 +4310,7 @@ class PlaySetSubtitleTextS2C(Packet, id=0x59):
 		return cls(subtitle_text)
 
 @final
-class PlayUpdateTimeS2C(Packet, id=0x5A):
+class PlayUpdateTimeS2C(Packet):
 	def __init__(self,
 		world_age: int, # Long
 		time_of_day: int, # Long
@@ -4103,7 +4329,7 @@ class PlayUpdateTimeS2C(Packet, id=0x5A):
 		return cls(world_age, time_of_day)
 
 @final
-class PlaySetTitleTextS2C(Packet, id=0x5B):
+class PlaySetTitleTextS2C(Packet):
 	def __init__(self,
 		title_text: dict, # Chat
 	):
@@ -4118,7 +4344,7 @@ class PlaySetTitleTextS2C(Packet, id=0x5B):
 		return cls(title_text)
 
 @final
-class PlaySetTitleAnimationTimesS2C(Packet, id=0x5C):
+class PlaySetTitleAnimationTimesS2C(Packet):
 	def __init__(self,
 		fade_in: int, # Int
 		stay: int, # Int
@@ -4141,7 +4367,7 @@ class PlaySetTitleAnimationTimesS2C(Packet, id=0x5C):
 		return cls(fade_in, stay, fade_out)
 
 @final
-class PlayEntitySoundEffectS2C(Packet, id=0x5D):
+class PlayEntitySoundEffectS2C(Packet):
 	def __init__(self,
 		sound_id: int, # VarInt
 		sound_name: str | None, # Optional Identifier
@@ -4201,7 +4427,7 @@ class PlayEntitySoundEffectS2C(Packet, id=0x5D):
 		return cls(sound_id, sound_name, has_fixed_range, range, sound_category, entity_id, volume, pitch, seed)
 
 @final
-class PlaySoundEffectS2C(Packet, id=0x5E):
+class PlaySoundEffectS2C(Packet):
 	def __init__(self,
 		sound_id: int, # VarInt
 		sound_name: str | None, # Optional Identifier
@@ -4269,7 +4495,7 @@ class PlaySoundEffectS2C(Packet, id=0x5E):
 		return cls(sound_id, sound_name, has_fixed_range, range, sound_category, effect_position_x, effect_position_y, effect_position_z, volume, pitch, seed)
 
 @final
-class PlayStopSoundS2C(Packet, id=0x5F):
+class PlayStopSoundS2C(Packet):
 	def __init__(self,
 		flags: int, # Byte
 		source: int | None, # Optional VarInt Enum
@@ -4296,7 +4522,7 @@ class PlayStopSoundS2C(Packet, id=0x5F):
 		return cls(flags, source, sound)
 
 @final
-class PlaySystemChatMessageS2C(Packet, id=0x60):
+class PlaySystemChatMessageS2C(Packet):
 	def __init__(self,
 		content: dict, # Chat
 		overlay: bool, # Boolean
@@ -4315,7 +4541,7 @@ class PlaySystemChatMessageS2C(Packet, id=0x60):
 		return cls(content, overlay)
 
 @final
-class PlaySetTabListHeaderAndFooterS2C(Packet, id=0x61):
+class PlaySetTabListHeaderAndFooterS2C(Packet):
 	def __init__(self,
 		header: dict, # Chat
 		footer: dict, # Chat
@@ -4334,7 +4560,7 @@ class PlaySetTabListHeaderAndFooterS2C(Packet, id=0x61):
 		return cls(header, footer)
 
 @final
-class PlayTagQueryResponseS2C(Packet, id=0x62):
+class PlayTagQueryResponseS2C(Packet):
 	def __init__(self,
 		transaction_id: int, # VarInt
 		nbt: NBT, # NBT Tag
@@ -4349,11 +4575,11 @@ class PlayTagQueryResponseS2C(Packet, id=0x62):
 	@classmethod
 	def parse_from(cls, r: PacketReader) -> Self:
 		transaction_id = r.read_varint()
-		nbt = NBT.parse_from(r)
+		nbt = NBT.parse(r)
 		return cls(transaction_id, nbt)
 
 @final
-class PlayPickupItemS2C(Packet, id=0x63):
+class PlayPickupItemS2C(Packet):
 	def __init__(self,
 		collected_entity_id: int, # VarInt
 		collector_entity_id: int, # VarInt
@@ -4376,7 +4602,7 @@ class PlayPickupItemS2C(Packet, id=0x63):
 		return cls(collected_entity_id, collector_entity_id, pickup_item_count)
 
 @final
-class PlayTeleportEntityS2C(Packet, id=0x64):
+class PlayTeleportEntityS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		x: float, # Double
@@ -4415,7 +4641,7 @@ class PlayTeleportEntityS2C(Packet, id=0x64):
 		return cls(entity_id, x, y, z, yaw, pitch, on_ground)
 
 @final
-class PlayUpdateAdvancementsS2C(Packet, id=0x65):
+class PlayUpdateAdvancementsS2C(Packet):
 	def __init__(self,
 		reset_clear: bool, # Boolean
 		advancement_mapping: dict[
@@ -4467,7 +4693,7 @@ class PlayUpdateAdvancementsS2C(Packet, id=0x65):
 		return cls(reset_clear, advancement_mapping, identifiers, progress_mapping)
 
 @final
-class PlayUpdateAttributesS2C(Packet, id=0x66):
+class PlayUpdateAttributesS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		properties: list[
@@ -4501,7 +4727,7 @@ class PlayUpdateAttributesS2C(Packet, id=0x66):
 		return cls(entity_id, properties)
 
 @final
-class PlayFeatureFlagsS2C(Packet, id=0x67):
+class PlayFeatureFlagsS2C(Packet):
 	def __init__(self,
 		total_features: int, # VarInt
 		feature_flags: list[str], # Identifier Array
@@ -4525,7 +4751,7 @@ class PlayFeatureFlagsS2C(Packet, id=0x67):
 		return cls(total_features, feature_flags)
 
 @final
-class PlayEntityEffectS2C(Packet, id=0x68):
+class PlayEntityEffectS2C(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		effect_id: int, # VarInt
@@ -4560,11 +4786,11 @@ class PlayEntityEffectS2C(Packet, id=0x68):
 		duration = r.read_varint()
 		flags = r.read_byte()
 		has_factor_data = r.read_bool()
-		factor_codec = NBT.parse_from(r)
+		factor_codec = NBT.parse(r)
 		return cls(entity_id, effect_id, amplifier, duration, flags, has_factor_data, factor_codec)
 
 @final
-class PlayUpdateRecipesS2C(Packet, id=0x69):
+class PlayUpdateRecipesS2C(Packet):
 	def __init__(self,
 		recipes: list[Recipe], # Array of Recipe
 	):
@@ -4584,7 +4810,7 @@ class PlayUpdateRecipesS2C(Packet, id=0x69):
 		return cls(recipes)
 
 @final
-class PlayUpdateTagsS2C(Packet, id=0x6A):
+class PlayUpdateTagsS2C(Packet):
 	def __init__(self,
 		array_of_tags: list[
 			tuple[
@@ -4616,7 +4842,7 @@ class PlayUpdateTagsS2C(Packet, id=0x6A):
 		return cls(array_of_tags)
 
 @final
-class PlayConfirmTeleportationC2S(Packet, id=0x00):
+class PlayConfirmTeleportationC2S(Packet):
 	def __init__(self,
 		teleport_id: int, # VarInt
 	):
@@ -4631,7 +4857,7 @@ class PlayConfirmTeleportationC2S(Packet, id=0x00):
 		return cls(teleport_id)
 
 @final
-class PlayQueryBlockEntityTagC2S(Packet, id=0x01):
+class PlayQueryBlockEntityTagC2S(Packet):
 	def __init__(self,
 		transaction_id: int, # VarInt
 		location: tuple[int, int, int], # Position
@@ -4650,7 +4876,7 @@ class PlayQueryBlockEntityTagC2S(Packet, id=0x01):
 		return cls(transaction_id, location)
 
 @final
-class PlayChangeDifficultyC2S(Packet, id=0x02):
+class PlayChangeDifficultyC2S(Packet):
 	def __init__(self,
 		new_difficulty: int, # Byte
 	):
@@ -4665,7 +4891,7 @@ class PlayChangeDifficultyC2S(Packet, id=0x02):
 		return cls(new_difficulty)
 
 @final
-class PlayMessageAcknowledgmentC2S(Packet, id=0x03):
+class PlayMessageAcknowledgmentC2S(Packet):
 	def __init__(self,
 		message_count: int, # VarInt
 	):
@@ -4680,7 +4906,7 @@ class PlayMessageAcknowledgmentC2S(Packet, id=0x03):
 		return cls(message_count)
 
 @final
-class PlayChatCommandC2S(Packet, id=0x04):
+class PlayChatCommandC2S(Packet):
 	def __init__(self,
 		command: str, # String (256)
 		timestamp: int, # Long
@@ -4728,7 +4954,7 @@ class PlayChatCommandC2S(Packet, id=0x04):
 		return cls(command, timestamp, salt, array_of_argument_signatures, message_count, acknowledged)
 
 @final
-class PlayChatMessageC2S(Packet, id=0x05):
+class PlayChatMessageC2S(Packet):
 	def __init__(self,
 		message: str, # String (256 chars)
 		timestamp: int, # Long
@@ -4770,7 +4996,7 @@ class PlayChatMessageC2S(Packet, id=0x05):
 		return cls(message, timestamp, salt, has_signature, signature, message_count, acknowledged)
 
 @final
-class PlayClientCommandC2S(Packet, id=0x06):
+class PlayClientCommandC2S(Packet):
 	def __init__(self,
 		action_id: int, # VarInt Enum
 	):
@@ -4785,7 +5011,7 @@ class PlayClientCommandC2S(Packet, id=0x06):
 		return cls(action_id)
 
 @final
-class PlayClientInformationC2S(Packet, id=0x07):
+class PlayClientInformationC2S(Packet):
 	def __init__(self,
 		locale: str, # String (16)
 		view_distance: int, # Byte
@@ -4828,7 +5054,7 @@ class PlayClientInformationC2S(Packet, id=0x07):
 		return cls(locale, view_distance, chat_mode, chat_colors, displayed_skin_parts, main_hand, enable_text_filtering, allow_server_listings)
 
 @final
-class PlayCommandSuggestionsRequestC2S(Packet, id=0x08):
+class PlayCommandSuggestionsRequestC2S(Packet):
 	def __init__(self,
 		transaction_id: int, # VarInt
 		text: str, # String (32500)
@@ -4847,7 +5073,7 @@ class PlayCommandSuggestionsRequestC2S(Packet, id=0x08):
 		return cls(transaction_id, text)
 
 @final
-class PlayClickContainerButtonC2S(Packet, id=0x09):
+class PlayClickContainerButtonC2S(Packet):
 	def __init__(self,
 		window_id: int, # Byte
 		button_id: int, # Byte
@@ -4866,7 +5092,7 @@ class PlayClickContainerButtonC2S(Packet, id=0x09):
 		return cls(window_id, button_id)
 
 @final
-class PlayClickContainerC2S(Packet, id=0x0A):
+class PlayClickContainerC2S(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 		state_id: int, # VarInt
@@ -4917,7 +5143,7 @@ class PlayClickContainerC2S(Packet, id=0x0A):
 		return cls(window_id, state_id, slot, button, mode, array_of_slots, carried_item)
 
 @final
-class PlayCloseContainerC2S(Packet, id=0x0B):
+class PlayCloseContainerC2S(Packet):
 	def __init__(self,
 		window_id: int, # Unsigned Byte
 	):
@@ -4932,7 +5158,7 @@ class PlayCloseContainerC2S(Packet, id=0x0B):
 		return cls(window_id)
 
 @final
-class PlayPluginMessageC2S(Packet, id=0x0C):
+class PlayPluginMessageC2S(Packet):
 	def __init__(self,
 		channel: str, # Identifier
 		data: bytes, # Byte Array (32767)
@@ -4951,7 +5177,7 @@ class PlayPluginMessageC2S(Packet, id=0x0C):
 		return cls(channel, data)
 
 @final
-class PlayEditBookC2S(Packet, id=0x0D):
+class PlayEditBookC2S(Packet):
 	def __init__(self,
 		slot: int, # VarInt
 		entries: list[list[str]], # Array of Strings (8192 chars)
@@ -4990,7 +5216,7 @@ class PlayEditBookC2S(Packet, id=0x0D):
 		return cls(slot, entries, has_title, title)
 
 @final
-class PlayQueryEntityTagC2S(Packet, id=0x0E):
+class PlayQueryEntityTagC2S(Packet):
 	def __init__(self,
 		transaction_id: int, # VarInt
 		entity_id: int, # VarInt
@@ -5009,7 +5235,7 @@ class PlayQueryEntityTagC2S(Packet, id=0x0E):
 		return cls(transaction_id, entity_id)
 
 @final
-class PlayInteractC2S(Packet, id=0x0F):
+class PlayInteractC2S(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		type: int, # VarInt Enum
@@ -5059,7 +5285,7 @@ class PlayInteractC2S(Packet, id=0x0F):
 		return cls(entity_id, type, target_x, target_y, target_z, hand, sneaking)
 
 @final
-class PlayJigsawGenerateC2S(Packet, id=0x10):
+class PlayJigsawGenerateC2S(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		levels: int, # VarInt
@@ -5082,7 +5308,7 @@ class PlayJigsawGenerateC2S(Packet, id=0x10):
 		return cls(location, levels, keep_jigsaws)
 
 @final
-class PlayKeepAliveC2S(Packet, id=0x11):
+class PlayKeepAliveC2S(Packet):
 	def __init__(self,
 		keep_alive_id: int, # Long
 	):
@@ -5097,7 +5323,7 @@ class PlayKeepAliveC2S(Packet, id=0x11):
 		return cls(keep_alive_id)
 
 @final
-class PlayLockDifficultyC2S(Packet, id=0x12):
+class PlayLockDifficultyC2S(Packet):
 	def __init__(self,
 		locked: bool, # Boolean
 	):
@@ -5112,7 +5338,7 @@ class PlayLockDifficultyC2S(Packet, id=0x12):
 		return cls(locked)
 
 @final
-class PlaySetPlayerPositionC2S(Packet, id=0x13):
+class PlaySetPlayerPositionC2S(Packet):
 	def __init__(self,
 		x: float, # Double
 		feet_y: float, # Double
@@ -5139,7 +5365,7 @@ class PlaySetPlayerPositionC2S(Packet, id=0x13):
 		return cls(x, feet_y, z, on_ground)
 
 @final
-class PlaySetPlayerPositionandRotationC2S(Packet, id=0x14):
+class PlaySetPlayerPositionandRotationC2S(Packet):
 	def __init__(self,
 		x: float, # Double
 		feet_y: float, # Double
@@ -5174,7 +5400,7 @@ class PlaySetPlayerPositionandRotationC2S(Packet, id=0x14):
 		return cls(x, feet_y, z, yaw, pitch, on_ground)
 
 @final
-class PlaySetPlayerRotationC2S(Packet, id=0x15):
+class PlaySetPlayerRotationC2S(Packet):
 	def __init__(self,
 		yaw: float, # Float
 		pitch: float, # Float
@@ -5197,7 +5423,7 @@ class PlaySetPlayerRotationC2S(Packet, id=0x15):
 		return cls(yaw, pitch, on_ground)
 
 @final
-class PlaySetPlayerOnGroundC2S(Packet, id=0x16):
+class PlaySetPlayerOnGroundC2S(Packet):
 	def __init__(self,
 		on_ground: bool, # Boolean
 	):
@@ -5212,7 +5438,7 @@ class PlaySetPlayerOnGroundC2S(Packet, id=0x16):
 		return cls(on_ground)
 
 @final
-class PlayMoveVehicleC2S(Packet, id=0x17):
+class PlayMoveVehicleC2S(Packet):
 	def __init__(self,
 		x: float, # Double
 		y: float, # Double
@@ -5243,7 +5469,7 @@ class PlayMoveVehicleC2S(Packet, id=0x17):
 		return cls(x, y, z, yaw, pitch)
 
 @final
-class PlayPaddleBoatC2S(Packet, id=0x18):
+class PlayPaddleBoatC2S(Packet):
 	def __init__(self,
 		left_paddle_turning: bool, # Boolean
 		right_paddle_turning: bool, # Boolean
@@ -5262,7 +5488,7 @@ class PlayPaddleBoatC2S(Packet, id=0x18):
 		return cls(left_paddle_turning, right_paddle_turning)
 
 @final
-class PlayPickItemC2S(Packet, id=0x19):
+class PlayPickItemC2S(Packet):
 	def __init__(self,
 		slot_to_use: int, # VarInt
 	):
@@ -5277,7 +5503,7 @@ class PlayPickItemC2S(Packet, id=0x19):
 		return cls(slot_to_use)
 
 @final
-class PlayPlaceRecipeC2S(Packet, id=0x1A):
+class PlayPlaceRecipeC2S(Packet):
 	def __init__(self,
 		window_id: int, # Byte
 		recipe: str, # Identifier
@@ -5300,7 +5526,7 @@ class PlayPlaceRecipeC2S(Packet, id=0x1A):
 		return cls(window_id, recipe, make_all)
 
 @final
-class PlayerAbilitiesC2S(Packet, id=0x1B):
+class PlayerAbilitiesC2S(Packet):
 	def __init__(self,
 		flags: int, # Byte
 	):
@@ -5315,7 +5541,7 @@ class PlayerAbilitiesC2S(Packet, id=0x1B):
 		return cls(flags)
 
 @final
-class PlayerActionC2S(Packet, id=0x1C):
+class PlayerActionC2S(Packet):
 	def __init__(self,
 		status: int, # VarInt Enum
 		location: tuple[int, int, int], # Position
@@ -5342,7 +5568,7 @@ class PlayerActionC2S(Packet, id=0x1C):
 		return cls(status, location, face, sequence)
 
 @final
-class PlayerCommandC2S(Packet, id=0x1D):
+class PlayerCommandC2S(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		action_id: int, # VarInt Enum
@@ -5365,7 +5591,7 @@ class PlayerCommandC2S(Packet, id=0x1D):
 		return cls(entity_id, action_id, jump_boost)
 
 @final
-class PlayerInputC2S(Packet, id=0x1E):
+class PlayerInputC2S(Packet):
 	def __init__(self,
 		sideways: float, # Float
 		forward: float, # Float
@@ -5388,7 +5614,7 @@ class PlayerInputC2S(Packet, id=0x1E):
 		return cls(sideways, forward, flags)
 
 @final
-class PlayPongC2S(Packet, id=0x1F):
+class PlayPongC2S(Packet):
 	def __init__(self,
 		id: int, # Int
 	):
@@ -5403,7 +5629,7 @@ class PlayPongC2S(Packet, id=0x1F):
 		return cls(id)
 
 @final
-class PlayerSessionC2S(Packet, id=0x20):
+class PlayerSessionC2S(Packet):
 	def __init__(self,
 		session_id: uuid.UUID, # UUID
 		expires_at: int, # Long
@@ -5432,7 +5658,7 @@ class PlayerSessionC2S(Packet, id=0x20):
 		return cls(session_id, expires_at, public_key, key_signature)
 
 @final
-class PlayChangeRecipeBookSettingsC2S(Packet, id=0x21):
+class PlayChangeRecipeBookSettingsC2S(Packet):
 	def __init__(self,
 		book_id: int, # VarInt Enum
 		book_open: bool, # Boolean
@@ -5455,7 +5681,7 @@ class PlayChangeRecipeBookSettingsC2S(Packet, id=0x21):
 		return cls(book_id, book_open, filter_active)
 
 @final
-class PlaySetSeenRecipeC2S(Packet, id=0x22):
+class PlaySetSeenRecipeC2S(Packet):
 	def __init__(self,
 		recipe_id: str, # Identifier
 	):
@@ -5470,7 +5696,7 @@ class PlaySetSeenRecipeC2S(Packet, id=0x22):
 		return cls(recipe_id)
 
 @final
-class PlayRenameItemC2S(Packet, id=0x23):
+class PlayRenameItemC2S(Packet):
 	def __init__(self,
 		item_name: str, # String (32767)
 	):
@@ -5485,7 +5711,7 @@ class PlayRenameItemC2S(Packet, id=0x23):
 		return cls(item_name)
 
 @final
-class PlayResourcePackC2S(Packet, id=0x24):
+class PlayResourcePackC2S(Packet):
 	def __init__(self,
 		result: int, # VarInt Enum
 	):
@@ -5500,7 +5726,7 @@ class PlayResourcePackC2S(Packet, id=0x24):
 		return cls(result)
 
 @final
-class PlaySeenAdvancementsC2S(Packet, id=0x25):
+class PlaySeenAdvancementsC2S(Packet):
 	def __init__(self,
 		action: int, # VarInt Enum
 		tab_id: str | None, # Optional identifier
@@ -5521,7 +5747,7 @@ class PlaySeenAdvancementsC2S(Packet, id=0x25):
 		return cls(action, tab_id)
 
 @final
-class PlaySelectTradeC2S(Packet, id=0x26):
+class PlaySelectTradeC2S(Packet):
 	def __init__(self,
 		selected_slot: int, # VarInt
 	):
@@ -5536,7 +5762,7 @@ class PlaySelectTradeC2S(Packet, id=0x26):
 		return cls(selected_slot)
 
 @final
-class PlaySetBeaconEffectC2S(Packet, id=0x27):
+class PlaySetBeaconEffectC2S(Packet):
 	def __init__(self,
 		has_primary_effect: bool, # Boolean
 		primary_effect: int, # VarInt
@@ -5563,7 +5789,7 @@ class PlaySetBeaconEffectC2S(Packet, id=0x27):
 		return cls(has_primary_effect, primary_effect, has_secondary_effect, secondary_effect)
 
 @final
-class PlaySetHeldItemC2S(Packet, id=0x28):
+class PlaySetHeldItemC2S(Packet):
 	def __init__(self,
 		slot: int, # Short
 	):
@@ -5578,7 +5804,7 @@ class PlaySetHeldItemC2S(Packet, id=0x28):
 		return cls(slot)
 
 @final
-class PlayProgramCommandBlockC2S(Packet, id=0x29):
+class PlayProgramCommandBlockC2S(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		command: str, # String (32767)
@@ -5605,7 +5831,7 @@ class PlayProgramCommandBlockC2S(Packet, id=0x29):
 		return cls(location, command, mode, flags)
 
 @final
-class PlayProgramCommandBlockMinecartC2S(Packet, id=0x2A):
+class PlayProgramCommandBlockMinecartC2S(Packet):
 	def __init__(self,
 		entity_id: int, # VarInt
 		command: str, # String (32767)
@@ -5628,7 +5854,7 @@ class PlayProgramCommandBlockMinecartC2S(Packet, id=0x2A):
 		return cls(entity_id, command, track_output)
 
 @final
-class PlaySetCreativeModeSlotC2S(Packet, id=0x2B):
+class PlaySetCreativeModeSlotC2S(Packet):
 	def __init__(self,
 		slot: int, # Short
 		clicked_item: Slot, # Slot
@@ -5647,7 +5873,7 @@ class PlaySetCreativeModeSlotC2S(Packet, id=0x2B):
 		return cls(slot, clicked_item)
 
 @final
-class PlayProgramJigsawBlockC2S(Packet, id=0x2C):
+class PlayProgramJigsawBlockC2S(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		name: str, # Identifier
@@ -5682,7 +5908,7 @@ class PlayProgramJigsawBlockC2S(Packet, id=0x2C):
 		return cls(location, name, target, pool, final_state, joint_type)
 
 @final
-class PlayProgramStructureBlockC2S(Packet, id=0x2D):
+class PlayProgramStructureBlockC2S(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		action: int, # VarInt Enum
@@ -5757,7 +5983,7 @@ class PlayProgramStructureBlockC2S(Packet, id=0x2D):
 		return cls(location, action, mode, name, offset_x, offset_y, offset_z, size_x, size_y, size_z, mirror, rotation, metadata, integrity, seed, flags)
 
 @final
-class PlayUpdateSignC2S(Packet, id=0x2E):
+class PlayUpdateSignC2S(Packet):
 	def __init__(self,
 		location: tuple[int, int, int], # Position
 		line_1: str, # String (384)
@@ -5788,7 +6014,7 @@ class PlayUpdateSignC2S(Packet, id=0x2E):
 		return cls(location, line_1, line_2, line_3, line_4)
 
 @final
-class PlaySwingArmC2S(Packet, id=0x2F):
+class PlaySwingArmC2S(Packet):
 	def __init__(self,
 		hand: int, # VarInt Enum
 	):
@@ -5803,7 +6029,7 @@ class PlaySwingArmC2S(Packet, id=0x2F):
 		return cls(hand)
 
 @final
-class PlayTeleportToEntityC2S(Packet, id=0x30):
+class PlayTeleportToEntityC2S(Packet):
 	def __init__(self,
 		target_player: uuid.UUID, # UUID
 	):
@@ -5818,7 +6044,7 @@ class PlayTeleportToEntityC2S(Packet, id=0x30):
 		return cls(target_player)
 
 @final
-class PlayUseItemOnC2S(Packet, id=0x31):
+class PlayUseItemOnC2S(Packet):
 	def __init__(self,
 		hand: int, # VarInt Enum
 		location: tuple[int, int, int], # Position
@@ -5849,7 +6075,7 @@ class PlayUseItemOnC2S(Packet, id=0x31):
 		b.write_varint(self.sequence)
 
 @final
-class PlayUseItemC2S(Packet, id=0x32):
+class PlayUseItemC2S(Packet):
 	def __init__(self,
 		hand: int, # VarInt Enum
 		sequence: int, # VarInt
@@ -5870,188 +6096,192 @@ class PlayUseItemC2S(Packet, id=0x32):
 Packet.register(PacketRepo(762, # 1.19.4
 	PacketStatusMap()
 	.add(ConnStatus.HANDSHAKING, PacketIdMap()
-		.add(HandshakingHandshakeC2S)
+		.add(HandshakingHandshakeC2S, 0x00)
 	)
 	.add(ConnStatus.STATUS, PacketIdMap()
-		.add(StatusRequestC2S)
-		.add(StatusPingRequestC2S)
+		.add(StatusRequestC2S, 0x00)
+		.add(StatusPingRequestC2S, 0x01)
 	)
 	.add(ConnStatus.LOGIN, PacketIdMap()
-		.add(LoginStartC2S)
-		.add(LoginEncryptionResponseC2S)
-		.add(LoginPluginResponseC2S)
+		.add(LoginStartC2S, 0x00)
+		.add(LoginEncryptionResponseC2S, 0x01)
+		.add(LoginPluginResponseC2S, 0x02)
 	)
 	.add(ConnStatus.PLAY, PacketIdMap()
-		.add(PlayConfirmTeleportationC2S)
-		.add(PlayQueryBlockEntityTagC2S)
-		.add(PlayChangeDifficultyC2S)
-		.add(PlayMessageAcknowledgmentC2S)
-		.add(PlayChatCommandC2S)
-		.add(PlayChatMessageC2S)
-		.add(PlayClientCommandC2S)
-		.add(PlayClientInformationC2S)
-		.add(PlayCommandSuggestionsRequestC2S)
-		.add(PlayClickContainerButtonC2S)
-		.add(PlayClickContainerC2S)
-		.add(PlayCloseContainerC2S)
-		.add(PlayPluginMessageC2S)
-		.add(PlayEditBookC2S)
-		.add(PlayQueryEntityTagC2S)
-		.add(PlayInteractC2S)
-		.add(PlayJigsawGenerateC2S)
-		.add(PlayKeepAliveC2S)
-		.add(PlayLockDifficultyC2S)
-		.add(PlaySetPlayerPositionC2S)
-		.add(PlaySetPlayerPositionandRotationC2S)
-		.add(PlaySetPlayerRotationC2S)
-		.add(PlaySetPlayerOnGroundC2S)
-		.add(PlayMoveVehicleC2S)
-		.add(PlayPaddleBoatC2S)
-		.add(PlayPickItemC2S)
-		.add(PlayPlaceRecipeC2S)
-		.add(PlayerAbilitiesC2S)
-		.add(PlayerActionC2S)
-		.add(PlayerCommandC2S)
-		.add(PlayerInputC2S)
-		.add(PlayPongC2S)
-		.add(PlayerSessionC2S)
-		.add(PlayChangeRecipeBookSettingsC2S)
-		.add(PlaySetSeenRecipeC2S)
-		.add(PlayRenameItemC2S)
-		.add(PlayResourcePackC2S)
-		.add(PlaySeenAdvancementsC2S)
-		.add(PlaySelectTradeC2S)
-		.add(PlaySetBeaconEffectC2S)
-		.add(PlaySetHeldItemC2S)
-		.add(PlayProgramCommandBlockC2S)
-		.add(PlayProgramCommandBlockMinecartC2S)
-		.add(PlaySetCreativeModeSlotC2S)
-		.add(PlayProgramJigsawBlockC2S)
-		.add(PlayProgramStructureBlockC2S)
-		.add(PlayUpdateSignC2S)
-		.add(PlaySwingArmC2S)
-		.add(PlayTeleportToEntityC2S)
-		.add(PlayUseItemOnC2S)
-		.add(PlayUseItemC2S)
+		.add(PlayConfirmTeleportationC2S, 0x00)
+		.add(PlayQueryBlockEntityTagC2S, 0x01)
+		.add(PlayChangeDifficultyC2S, 0x02)
+		.add(PlayMessageAcknowledgmentC2S, 0x03)
+		.add(PlayChatCommandC2S, 0x04)
+		.add(PlayChatMessageC2S, 0x05)
+		.add(PlayerSessionC2S, 0x06)
+		.add(PlayClientCommandC2S, 0x07)
+		.add(PlayClientInformationC2S, 0x08)
+		.add(PlayCommandSuggestionsRequestC2S, 0x09)
+		.add(PlayClickContainerButtonC2S, 0x0A)
+		.add(PlayClickContainerC2S, 0x0B)
+		.add(PlayCloseContainerC2S, 0x0C)
+		.add(PlayPluginMessageC2S, 0x0D)
+		.add(PlayEditBookC2S, 0x0E)
+		.add(PlayQueryEntityTagC2S, 0x0F)
+		.add(PlayInteractC2S, 0x10)
+		.add(PlayJigsawGenerateC2S, 0x11)
+		.add(PlayKeepAliveC2S, 0x12)
+		.add(PlayLockDifficultyC2S, 0x13)
+		.add(PlaySetPlayerPositionC2S, 0x14)
+		.add(PlaySetPlayerPositionandRotationC2S, 0x15)
+		.add(PlaySetPlayerRotationC2S, 0x16)
+		.add(PlaySetPlayerOnGroundC2S, 0x17)
+		.add(PlayMoveVehicleC2S, 0x18)
+		.add(PlayPaddleBoatC2S, 0x19)
+		.add(PlayPickItemC2S, 0x1A)
+		.add(PlayPlaceRecipeC2S, 0x1B)
+		.add(PlayerAbilitiesC2S, 0x1C)
+		.add(PlayerActionC2S, 0x1D)
+		.add(PlayerCommandC2S, 0x1E)
+		.add(PlayerInputC2S, 0x1F)
+		.add(PlayPongC2S, 0x20)
+		.add(PlayChangeRecipeBookSettingsC2S, 0x21)
+		.add(PlaySetSeenRecipeC2S, 0x22)
+		.add(PlayRenameItemC2S, 0x23)
+		.add(PlayResourcePackC2S, 0x24)
+		.add(PlaySeenAdvancementsC2S, 0x25)
+		.add(PlaySelectTradeC2S, 0x26)
+		.add(PlaySetBeaconEffectC2S, 0x27)
+		.add(PlaySetHeldItemC2S, 0x28)
+		.add(PlayProgramCommandBlockC2S, 0x29)
+		.add(PlayProgramCommandBlockMinecartC2S, 0x2A)
+		.add(PlaySetCreativeModeSlotC2S, 0x2B)
+		.add(PlayProgramJigsawBlockC2S, 0x2C)
+		.add(PlayProgramStructureBlockC2S, 0x2D)
+		.add(PlayUpdateSignC2S, 0x2E)
+		.add(PlaySwingArmC2S, 0x2F)
+		.add(PlayTeleportToEntityC2S, 0x30)
+		.add(PlayUseItemOnC2S, 0x31)
+		.add(PlayUseItemC2S, 0x32)
 	)
 	, PacketStatusMap()
 	.add(ConnStatus.STATUS, PacketIdMap()
-		.add(StatusResponseS2C)
-		.add(StatusPingResponseS2C)
+		.add(StatusResponseS2C, 0x00)
+		.add(StatusPingResponseS2C, 0x01)
 	)
 	.add(ConnStatus.LOGIN, PacketIdMap()
-		.add(LoginDisconnectS2C)
-		.add(LoginEncryptionRequestS2C)
-		.add(LoginSuccessS2C)
-		.add(LoginSetCompressionS2C)
-		.add(LoginPluginRequestS2C)
+		.add(LoginDisconnectS2C, 0x00)
+		.add(LoginEncryptionRequestS2C, 0x01)
+		.add(LoginSuccessS2C, 0x02)
+		.add(LoginSetCompressionS2C, 0x03)
+		.add(LoginPluginRequestS2C, 0x04)
 	)
 	.add(ConnStatus.PLAY, PacketIdMap()
-		.add(PlaySpawnEntityS2C)
-		.add(PlaySpawnExperienceOrbS2C)
-		.add(PlaySpawnPlayerS2C)
-		.add(PlayEntityAnimationS2C)
-		.add(PlayAwardStatisticsS2C)
-		.add(PlayAcknowledgeBlockChangeS2C)
-		.add(PlaySetBlockDestroyStageS2C)
-		.add(PlayBlockEntityDataS2C)
-		.add(PlayBlockActionS2C)
-		.add(PlayBlockUpdateS2C)
-		.add(PlayBossBarS2C)
-		.add(PlayChangeDifficultyS2C)
-		.add(PlayClearTitlesS2C)
-		.add(PlayCommandSuggestionsResponseS2C)
-		.add(PlayCommandsS2C)
-		.add(PlayCloseContainerS2C)
-		.add(PlaySetContainerContentS2C)
-		.add(PlaySetContainerPropertyS2C)
-		.add(PlaySetContainerSlotS2C)
-		.add(PlaySetCooldownS2C)
-		.add(PlayChatSuggestionsS2C)
-		.add(PlayPluginMessageS2C)
-		.add(PlayDeleteMessageS2C)
-		.add(PlayDisconnectS2C)
-		.add(PlayDisguisedChatMessageS2C)
-		.add(PlayEntityEventS2C)
-		.add(PlayExplosionS2C)
-		.add(PlayUnloadChunkS2C)
-		.add(PlayGameEventS2C)
-		.add(PlayOpenHorseScreenS2C)
-		.add(PlayInitializeWorldBorderS2C)
-		.add(PlayKeepAliveS2C)
-		.add(PlayChunkDataandUpdateLightS2C)
-		.add(PlayWorldEventS2C)
-		.add(PlayParticleS2C)
-		.add(PlayUpdateLightS2C)
-		.add(PlayLoginS2C)
-		.add(PlayMapDataS2C)
-		.add(PlayMerchantOffersS2C)
-		.add(PlayUpdateEntityPositionS2C)
-		.add(PlayUpdateEntityPositionandRotationS2C)
-		.add(PlayUpdateEntityRotationS2C)
-		.add(PlayMoveVehicleS2C)
-		.add(PlayOpenBookS2C)
-		.add(PlayOpenScreenS2C)
-		.add(PlayOpenSignEditorS2C)
-		.add(PlayPingS2C)
-		.add(PlayPlaceGhostRecipeS2C)
-		.add(PlayerAbilitiesS2C)
-		.add(PlayEndCombatS2C)
-		.add(PlayEnterCombatS2C)
-		.add(PlayCombatDeathS2C)
-		.add(PlayerInfoRemoveS2C)
-		.add(PlayerInfoUpdateS2C)
-		.add(PlayLookAtS2C)
-		.add(PlaySynchronizePlayerPositionS2C)
-		.add(PlayUpdateRecipeBookS2C)
-		.add(PlayRemoveEntitiesS2C)
-		.add(PlayRemoveEntityEffectS2C)
-		.add(PlayResourcePackS2C)
-		.add(PlayRespawnS2C)
-		.add(PlaySetHeadRotationS2C)
-		.add(PlayUpdateSectionBlocksS2C)
-		.add(PlaySelectAdvancementsTabS2C)
-		.add(PlayServerDataS2C)
-		.add(PlaySetActionBarTextS2C)
-		.add(PlaySetBorderCenterS2C)
-		.add(PlaySetBorderLerpSizeS2C)
-		.add(PlaySetBorderSizeS2C)
-		.add(PlaySetBorderWarningDelayS2C)
-		.add(PlaySetBorderWarningDistanceS2C)
-		.add(PlaySetCameraS2C)
-		.add(PlaySetHeldItemS2C)
-		.add(PlaySetCenterChunkS2C)
-		.add(PlaySetRenderDistanceS2C)
-		.add(PlaySetDefaultSpawnPositionS2C)
-		.add(PlayDisplayObjectiveS2C)
-		.add(PlaySetEntityMetadataS2C)
-		.add(PlayLinkEntitiesS2C)
-		.add(PlaySetEntityVelocityS2C)
-		.add(PlaySetEquipmentS2C)
-		.add(PlaySetExperienceS2C)
-		.add(PlaySetHealthS2C)
-		.add(PlayUpdateObjectivesS2C)
-		.add(PlaySetPassengersS2C)
-		.add(PlayUpdateTeamsS2C)
-		.add(PlayUpdateScoreS2C)
-		.add(PlaySetSimulationDistanceS2C)
-		.add(PlaySetSubtitleTextS2C)
-		.add(PlayUpdateTimeS2C)
-		.add(PlaySetTitleTextS2C)
-		.add(PlaySetTitleAnimationTimesS2C)
-		.add(PlayEntitySoundEffectS2C)
-		.add(PlaySoundEffectS2C)
-		.add(PlayStopSoundS2C)
-		.add(PlaySystemChatMessageS2C)
-		.add(PlaySetTabListHeaderAndFooterS2C)
-		.add(PlayTagQueryResponseS2C)
-		.add(PlayPickupItemS2C)
-		.add(PlayTeleportEntityS2C)
-		.add(PlayUpdateAdvancementsS2C)
-		.add(PlayUpdateAttributesS2C)
-		.add(PlayFeatureFlagsS2C)
-		.add(PlayEntityEffectS2C)
-		.add(PlayUpdateRecipesS2C)
-		.add(PlayUpdateTagsS2C)
+		.add(PlayBundleDelimiterS2C, 0x00)
+		.add(PlaySpawnEntityS2C, 0x01)
+		.add(PlaySpawnExperienceOrbS2C, 0x02)
+		.add(PlaySpawnPlayerS2C, 0x03)
+		.add(PlayEntityAnimationS2C, 0x04)
+		.add(PlayAwardStatisticsS2C, 0x05)
+		.add(PlayAcknowledgeBlockChangeS2C, 0x06)
+		.add(PlaySetBlockDestroyStageS2C, 0x07)
+		.add(PlayBlockEntityDataS2C, 0x08)
+		.add(PlayBlockActionS2C, 0x09)
+		.add(PlayBlockUpdateS2C, 0x0A)
+		.add(PlayBossBarS2C, 0x0B)
+		.add(PlayChangeDifficultyS2C, 0x0C)
+		.add(PlayChunkBiomesS2C, 0x0D)
+		.add(PlayClearTitlesS2C, 0x0E)
+		.add(PlayCommandSuggestionsResponseS2C, 0x0F)
+		.add(PlayCommandsS2C, 0x10)
+		.add(PlayCloseContainerS2C, 0x11)
+		.add(PlaySetContainerContentS2C, 0x12)
+		.add(PlaySetContainerPropertyS2C, 0x13)
+		.add(PlaySetContainerSlotS2C, 0x14)
+		.add(PlaySetCooldownS2C, 0x15)
+		.add(PlayChatSuggestionsS2C, 0x16)
+		.add(PlayPluginMessageS2C, 0x17)
+		.add(PlayDamageEventS2C, 0x18)
+		.add(PlayDeleteMessageS2C, 0x19)
+		.add(PlayDisconnectS2C, 0x1A)
+		.add(PlayDisguisedChatMessageS2C, 0x1B)
+		.add(PlayEntityEventS2C, 0x1C)
+		.add(PlayExplosionS2C, 0x1D)
+		.add(PlayUnloadChunkS2C, 0x1E)
+		.add(PlayGameEventS2C, 0x1F)
+		.add(PlayOpenHorseScreenS2C, 0x20)
+		.add(PlayHurtAnimationS2C, 0x21)
+		.add(PlayInitializeWorldBorderS2C, 0x22)
+		.add(PlayKeepAliveS2C, 0x23)
+		.add(PlayChunkDataandUpdateLightS2C, 0x24)
+		.add(PlayWorldEventS2C, 0x25)
+		.add(PlayParticleS2C, 0x26)
+		.add(PlayUpdateLightS2C, 0x27)
+		.add(PlayLoginS2C, 0x28)
+		.add(PlayMapDataS2C, 0x29)
+		.add(PlayMerchantOffersS2C, 0x2A)
+		.add(PlayUpdateEntityPositionS2C, 0x2B)
+		.add(PlayUpdateEntityPositionandRotationS2C, 0x2C)
+		.add(PlayUpdateEntityRotationS2C, 0x2D)
+		.add(PlayMoveVehicleS2C, 0x2E)
+		.add(PlayOpenBookS2C, 0x2F)
+		.add(PlayOpenScreenS2C, 0x30)
+		.add(PlayOpenSignEditorS2C, 0x31)
+		.add(PlayPingS2C, 0x32)
+		.add(PlayPlaceGhostRecipeS2C, 0x33)
+		.add(PlayerAbilitiesS2C, 0x34)
+		.add(PlayEndCombatS2C, 0x36)
+		.add(PlayEnterCombatS2C, 0x37)
+		.add(PlayCombatDeathS2C, 0x38)
+		.add(PlayerInfoRemoveS2C, 0x39)
+		.add(PlayerInfoUpdateS2C, 0x3A)
+		.add(PlayLookAtS2C, 0x3B)
+		.add(PlaySynchronizePlayerPositionS2C, 0x3C)
+		.add(PlayUpdateRecipeBookS2C, 0x3D)
+		.add(PlayRemoveEntitiesS2C, 0x3E)
+		.add(PlayRemoveEntityEffectS2C, 0x3F)
+		.add(PlayResourcePackS2C, 0x40)
+		.add(PlayRespawnS2C, 0x41)
+		.add(PlaySetHeadRotationS2C, 0x42)
+		.add(PlayUpdateSectionBlocksS2C, 0x43)
+		.add(PlaySelectAdvancementsTabS2C, 0x44)
+		.add(PlayServerDataS2C, 0x45)
+		.add(PlaySetActionBarTextS2C, 0x46)
+		.add(PlaySetBorderCenterS2C, 0x47)
+		.add(PlaySetBorderLerpSizeS2C, 0x48)
+		.add(PlaySetBorderSizeS2C, 0x49)
+		.add(PlaySetBorderWarningDelayS2C, 0x4A)
+		.add(PlaySetBorderWarningDistanceS2C, 0x4B)
+		.add(PlaySetCameraS2C, 0x4C)
+		.add(PlaySetHeldItemS2C, 0x4D)
+		.add(PlaySetCenterChunkS2C, 0x4E)
+		.add(PlaySetRenderDistanceS2C, 0x4F)
+		.add(PlaySetDefaultSpawnPositionS2C, 0x50)
+		.add(PlayDisplayObjectiveS2C, 0x51)
+		.add(PlaySetEntityMetadataS2C, 0x52)
+		.add(PlayLinkEntitiesS2C, 0x53)
+		.add(PlaySetEntityVelocityS2C, 0x54)
+		.add(PlaySetEquipmentS2C, 0x55)
+		.add(PlaySetExperienceS2C, 0x56)
+		.add(PlaySetHealthS2C, 0x57)
+		.add(PlayUpdateObjectivesS2C, 0x58)
+		.add(PlaySetPassengersS2C, 0x59)
+		.add(PlayUpdateTeamsS2C, 0x5A)
+		.add(PlayUpdateScoreS2C, 0x5B)
+		.add(PlaySetSimulationDistanceS2C, 0x5C)
+		.add(PlaySetSubtitleTextS2C, 0x5D)
+		.add(PlayUpdateTimeS2C, 0x5E)
+		.add(PlaySetTitleTextS2C, 0x5F)
+		.add(PlaySetTitleAnimationTimesS2C, 0x60)
+		.add(PlayEntitySoundEffectS2C, 0x61)
+		.add(PlaySoundEffectS2C, 0x62)
+		.add(PlayStopSoundS2C, 0x63)
+		.add(PlaySystemChatMessageS2C, 0x64)
+		.add(PlaySetTabListHeaderAndFooterS2C, 0x65)
+		.add(PlayTagQueryResponseS2C, 0x66)
+		.add(PlayPickupItemS2C, 0x67)
+		.add(PlayTeleportEntityS2C, 0x68)
+		.add(PlayUpdateAdvancementsS2C, 0x69)
+		.add(PlayUpdateAttributesS2C, 0x6A)
+		.add(PlayFeatureFlagsS2C, 0x6B)
+		.add(PlayEntityEffectS2C, 0x6C)
+		.add(PlayUpdateRecipesS2C, 0x6D)
+		.add(PlayUpdateTagsS2C, 0x6E)
 	)
 ))

@@ -2,7 +2,7 @@
 import mcdreforged.api.all as MCDR
 
 from loginproxy import get_proxy
-from loginproxy.server import ProxyServer, Conn
+from loginproxy.server import ProxyServer, Conn, ConnStatus
 
 from .conn import proxy_conn
 from .utils import *
@@ -17,6 +17,7 @@ def on_login(self: ProxyServer, conn, addr: tuple[str, int], name: str, login_da
 				c._set_close()
 	with self._conns:
 		self._conns.d[name] = c
+	c.status = ConnStatus.LOGIN
 	proxy_conn(c, login_data, final=final)
 	return True
 

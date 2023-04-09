@@ -20,9 +20,9 @@ class PacketIdMap:
 	def value(self) -> dict[int, PacketType]:
 		return self._value
 
-	def add(self, typ: PacketType) -> Self:
-		assert typ.ID not in self.value, f'Packet id {id} already exists'
-		self.value[typ.ID] = typ
+	def add(self, typ: PacketType, id: int) -> Self:
+		assert int not in self.value, f'Packet id {int} already exists'
+		self.value[id] = typ
 		return self
 
 	def get(self, id: int) -> PacketType | None:
@@ -94,7 +94,6 @@ def _search_repo(lst: list[PacketRepo], protocol: int) -> int:
 
 class Packet(abc.ABC):
 	_packet_types: list[PacketRepo] = []
-	ID: int
 
 	@staticmethod
 	def register(repo: PacketRepo):
@@ -107,9 +106,6 @@ class Packet(abc.ABC):
 		if rp > repo.protocol:
 			i += 1
 		Packet._packet_types.insert(i, repo)
-
-	def __init_subclass__(cls, *, id: int):
-		cls.ID = id
 
 	@staticmethod
 	def get_packet_cls(protocol: int, c2s: bool, status: ConnStatus, id: int) -> PacketType | None:
@@ -129,13 +125,17 @@ class Packet(abc.ABC):
 		typ = Packet.get_packet_cls(protocol, c2s, status, r.id)
 		if typ is None:
 			return None
-		return typ.parse_from(r)
+		pkt = typ.parse_from(r)
+		remain = r.remain
+		if remain != 0:
+			raise RuntimeError('Parser did not parsed all data, remain {} bytes'.format(remain))
+		return pkt
 
 	@abstractmethod
 	def to_bytes(self, b: PacketBuffer):
 		raise NotImplementedError()
 
-	@abstractmethod
 	@classmethod
+	@abstractmethod
 	def parse_from(cls, r: PacketReader) -> Self:
 		raise NotImplementedError()

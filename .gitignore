@@ -6,6 +6,7 @@
 /output/
 /dist/
 /test/
+/.test/
 
 # caches
 __pycache__
