@@ -161,10 +161,15 @@ def forwarder_s2c(c: Conn, login_data: dict, final=None):
 				log_warn(f'[S2C] Cannot parse package 0x{r.id:02x} with status {c.status} under protocol {protocol}')
 				c.sendpkt2(r.data, None)
 			else:
-				e = Event(c, pkt, cancelable=True)
-				e.trigger()
-				if not e.canceled:
+				if isinstance(pkt, V1_19.LoginSetCompressionS2C):
 					c.sendpkt(r.data, None)
+					e = Event(c, pkt, cancelable=False)
+					e.trigger()
+				else:
+					e = Event(c, pkt, cancelable=True)
+					e.trigger()
+					if not e.canceled:
+						c.sendpkt(r.data, None)
 	except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
 		pass
 	except Exception as e:

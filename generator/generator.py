@@ -98,7 +98,7 @@ _wiki_reader_map = {
 	'METADATA': 'Metadata.{}',
 	'BITSET': 'BitSet.parse_from({})',
 	'STRINGS': '{}.read_todo_strings()',
-	'NBT TAG COMPOUND': 'Compound.parse_from({})',
+	'NBT TAG COMPOUND': 'Compound.parse_from({}); assert isinstance(, Compound)',
 	'NODE': 'Node.parse_from({})',
 
 	'2048 BYTES': '{}.read(2048)',
@@ -192,7 +192,7 @@ def generate(target: str, id, fd):
 	states_c2s = {}
 
 	for tb in tables:
-		trs = tb.find_all('tr')
+		trs = tb.select('tr')
 		thead = [th.get_text().strip().upper() for th in trs[0].find_all('th')]
 		if len(thead) < 6:
 			continue
@@ -243,7 +243,6 @@ def generate(target: str, id, fd):
 				fields.append((name.replace(' ', '_').replace('-', '_').lower(), typ, note))
 			for tr in trs[2:]:
 				tds = [td.get_text().strip() for td in tr.find_all('td')]
-				tds = tds[3:]
 				if len(tds) == 0:
 					continue
 				elif len(tds) == 2:

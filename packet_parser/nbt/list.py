@@ -32,6 +32,21 @@ class List(NBT, id=NBTID.List):
 	def children(self) -> list[NBT]:
 		return self._children
 
+	def __len__(self) -> int:
+		return len(self.children)
+
+	def __iter__(self):
+		return iter(self._children)
+
+	def __contains__(self, tag: NBT) -> bool:
+		return tag in self._children
+
+	def __getitem__(self, index: int) -> NBT:
+		return self._children[index]
+
+	def __setitem__(self, index: int, tag: NBT):
+		self._children[index] = tag
+
 	def to_bytes_value(self, b: PacketBuffer) -> None:
 		b.write_byte(self.element.value)
 		b.write_int(len(self.children))
@@ -45,6 +60,17 @@ class List(NBT, id=NBTID.List):
 		children = [eletyp.parse_from(r) for _ in range(r.read_int())]
 		return cls(element, children, name=name)
 
+	def as_str(self, *, indent: int = 0) -> str:
+		ind = '  ' * indent
+		s = super().as_str(indent=indent) + ': ' + \
+			('1 entry' if len(self) == 1 else '{} entries\n'.format(len(self))) + \
+			ind + '{\n'
+		indent += 1
+		for e in self:
+			s += e.as_str(indent=indent) + '\n'
+		s += ind + '}'
+		return s
+
 class String(NBT, id=NBTID.String):
 	def __init__(self, value: str, name: str | None = None):
 		super().__init__(name)
@@ -54,15 +80,21 @@ class String(NBT, id=NBTID.String):
 	def value(self) -> str:
 		return self._value
 
+	def __len__(self) -> int:
+		return len(self.value)
+
 	def to_bytes_value(self, b: PacketBuffer) -> None:
 		bts = utf8s_to_utf8m(self.value.encode('utf8'))
-		b.write_short(len(bts))
+		b.write_ushort(len(bts))
 		b.write(bts)
 
 	@classmethod
 	def parse_from(cls, r: PacketReader, name: str | None = None) -> Self:
-		value = utf8m_to_utf8s(r.read(r.read_short())).decode('utf8')
+		value = utf8m_to_utf8s(r.read(r.read_ushort())).decode('utf8')
 		return cls(value, name)
+
+	def as_str(self, *, indent: int = 0) -> str:
+		return super().as_str(indent=indent) + ': ' + repr(self.value)
 
 class Byte_Array(NBT, id=NBTID.Byte_Array):
 	def __init__(self, value: list[Byte] | list[int] | bytes | bytearray, name: str | None = None):
@@ -85,6 +117,9 @@ class Byte_Array(NBT, id=NBTID.Byte_Array):
 	def value(self) -> bytearray:
 		return self._value
 
+	def __len__(self) -> int:
+		return len(self.value)
+
 	def to_bytes_value(self, b: PacketBuffer) -> None:
 		b.write_int(len(self.value))
 		b.write(bytes(self.value))
@@ -93,6 +128,9 @@ class Byte_Array(NBT, id=NBTID.Byte_Array):
 	def parse_from(cls, r: PacketReader, name: str | None = None) -> Self:
 		value = r.read(r.read_int())
 		return cls(value, name)
+
+	def as_str(self, *, indent: int = 0) -> str:
+		return super().as_str(indent=indent) + ': {}'.format(list(self.value))
 
 class Int_Array(NBT, id=NBTID.Int_Array):
 	def __init__(self, value: list[Int] | list[int], name: str | None = None):
@@ -112,10 +150,13 @@ class Int_Array(NBT, id=NBTID.Int_Array):
 	def value(self) -> list[int]:
 		return self._value
 
+	def __len__(self) -> int:
+		return len(self.value)
+
 	def to_bytes_value(self, b: PacketBuffer) -> None:
 		b.write_int(len(self.value))
 		for v in self.value:
-			Int(v).to_bytes_value(b)
+			b.write_int(v)
 
 	@classmethod
 	def parse_from(cls, r: PacketReader, name: str | None = None) -> Self:
@@ -140,12 +181,18 @@ class Long_Array(NBT, id=NBTID.Long_Array):
 	def value(self) -> list[int]:
 		return self._value
 
+	def __len__(self) -> int:
+		return len(self.value)
+
 	def to_bytes_value(self, b: PacketBuffer) -> None:
 		b.write_int(len(self.value))
 		for v in self.value:
-			Long(v).to_bytes_value(b)
+			b.write_long(v)
 
 	@classmethod
 	def parse_from(cls, r: PacketReader, name: str | None = None) -> Self:
 		value = [r.read_long() for _ in range(r.read_int())]
 		return cls(value, name)
+
+	def as_str(self, *, indent: int = 0) -> str:
+		return super().as_str(indent=indent) + ': {}'.format(list(self.value))

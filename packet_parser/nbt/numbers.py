@@ -16,7 +16,7 @@ class _Integers(NBT):
 	MAX_VALUE: int
 	def __init_subclass__(cls, *, byten: int, **kwargs):
 		super().__init_subclass__(**kwargs)
-		mask = 8 * byten - 1
+		mask = 1 << (8 * byten - 1)
 		cls.MIN_VALUE = -mask
 		cls.MAX_VALUE = mask - 1
 
@@ -34,6 +34,9 @@ class _Integers(NBT):
 	@value.setter
 	def value(self, value: int):
 		self._value = value
+
+	def as_str(self, *, indent: int = 0) -> str:
+		return super().as_str(indent=indent) + ': {}'.format(self.value)
 
 @final
 class Byte(_Integers, id=NBTID.Byte, byten=1):
@@ -87,6 +90,9 @@ class _Decimals(NBT):
 	@value.setter
 	def value(self, value: float):
 		self._value = value
+
+	def as_str(self, *, indent: int = 0) -> str:
+		return super().as_str(indent=indent) + ': {}'.format(self.value)
 
 @final
 class Float(_Decimals, id=NBTID.Float):

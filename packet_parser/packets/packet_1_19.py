@@ -14,12 +14,11 @@ SIGNATURE_LENGTH = 256
 
 __all__ = [
 	'HandshakingHandshakeC2S',
-	'HandshakingLegacyServerListPingC2S',
 	'StatusResponseS2C',
 	'StatusPingResponseS2C',
 	'StatusRequestC2S',
 	'StatusPingRequestC2S',
-	'LoginDisconnect(login)S2C',
+	'LoginDisconnectS2C',
 	'LoginEncryptionRequestS2C',
 	'LoginSuccessS2C',
 	'LoginSetCompressionS2C',
@@ -53,7 +52,7 @@ __all__ = [
 	'PlayPluginMessageS2C',
 	'PlayDamageEventS2C',
 	'PlayDeleteMessageS2C',
-	'PlayDisconnect(play)S2C',
+	'PlayDisconnectS2C',
 	'PlayDisguisedChatMessageS2C',
 	'PlayEntityEventS2C',
 	'PlayExplosionS2C',
@@ -67,7 +66,7 @@ __all__ = [
 	'PlayWorldEventS2C',
 	'PlayParticleS2C',
 	'PlayUpdateLightS2C',
-	'PlayLogin(play)S2C',
+	'PlayLoginS2C',
 	'PlayMapDataS2C',
 	'PlayMerchantOffersS2C',
 	'PlayUpdateEntityPositionS2C',
@@ -77,7 +76,7 @@ __all__ = [
 	'PlayOpenBookS2C',
 	'PlayOpenScreenS2C',
 	'PlayOpenSignEditorS2C',
-	'PlayPing(play)S2C',
+	'PlayPingS2C',
 	'PlayPlaceGhostRecipeS2C',
 	'PlayerAbilitiesS2C',
 	'PlayEndCombatS2C',
@@ -169,7 +168,7 @@ __all__ = [
 	'PlayerActionC2S',
 	'PlayerCommandC2S',
 	'PlayerInputC2S',
-	'PlayPong(play)C2S',
+	'PlayPongC2S',
 	'PlayChangeRecipeBookSettingsC2S',
 	'PlaySetSeenRecipeC2S',
 	'PlayRenameItemC2S',
@@ -2743,7 +2742,8 @@ class PlayLoginS2C(Packet):
 		for _ in range(r.read_varint()):
 			dimension_name = r.read_string()
 			dimension_names.append(dimension_name)
-		registry_codec = Compound.parse_from(r)
+		registry_codec = NBT.parse(r)
+		assert isinstance(registry_codec, Compound)
 		dimension_type = r.read_string()
 		dimension_name = r.read_string()
 		hashed_seed = r.read_long()
@@ -4729,21 +4729,17 @@ class PlayUpdateAttributesS2C(Packet):
 @final
 class PlayFeatureFlagsS2C(Packet):
 	def __init__(self,
-		total_features: int, # VarInt
 		feature_flags: list[str], # Identifier Array
 	):
-		self.total_features = total_features # Number of features that appear in the array below.
 		self.feature_flags = feature_flags #
 
 	def to_bytes(self, b: PacketBuffer) -> None:
-		b.write_varint(self.total_features)
 		b.write_varint(len(self.feature_flags))
 		for feature_flag in self.feature_flags:
 			b.write_string(feature_flag)
 
 	@classmethod
 	def parse_from(cls, r: PacketReader) -> Self:
-		total_features = r.read_varint()
 		feature_flags = []
 		for _ in range(r.read_varint()):
 			feature_flag = r.read_string()

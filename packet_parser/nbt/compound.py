@@ -80,6 +80,12 @@ class Compound(NBT, id=NBTID.Compound):
 	def get(self, name: str, default: NBT | None = None) -> NBT | None:
 		return self._children.get(name, default)
 
+	def values(self):
+		return self._children.values()
+
+	def __len__(self) -> int:
+		return len(self._children)
+
 	def __iter__(self):
 		return iter(self._children)
 
@@ -97,3 +103,14 @@ class Compound(NBT, id=NBTID.Compound):
 		if isinstance(obj, NBT):
 			return obj in self._children.values()
 		return obj in self._children
+
+	def as_str(self, *, indent: int = 0) -> str:
+		ind = '  ' * indent
+		s = super().as_str(indent=indent) + ': ' + \
+			('1 entry' if len(self) == 1 else '{} entries\n'.format(len(self))) + \
+			ind + '{\n'
+		indent += 1
+		for e in sorted(self.values(), key=lambda v: v.name):
+			s += e.as_str(indent=indent) + '\n'
+		s += ind + '}'
+		return s

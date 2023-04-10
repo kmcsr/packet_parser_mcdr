@@ -57,9 +57,9 @@ class NBT(abc.ABC):
 
 	def to_bytes(self, b: PacketBuffer) -> None:
 		b.write_byte(self.__class__.ID.value)
-		if self.name is not None:
+		if self._name is not None:
 			name = utf8s_to_utf8m(self.name.encode('utf8'))
-			b.write_short(len(name))
+			b.write_ushort(len(name))
 			b.write(name)
 		self.to_bytes_value(b)
 
@@ -75,5 +75,16 @@ class NBT(abc.ABC):
 	@staticmethod
 	def parse(r: PacketReader) -> 'NBT':
 		id = NBTID(r.read_ubyte())
-		name = utf8m_to_utf8s(r.read(r.read_ushort())).decode('utf8') if id != NBTID.End else None
-		return NBT._nbt_cls[id].parse_from(r, name)
+		if id == NBTID.End:
+			name = None
+		else:
+			name = utf8m_to_utf8s(r.read(r.read_ushort())).decode('utf8')
+		tag = NBT._nbt_cls[id].parse_from(r, name)
+		return tag
+
+	def as_str(self, *, indent: int = 0) -> str:
+		ind = '  ' * indent
+		return ind + 'TAG_{0}({1})'.format(self.__class__.ID.name, repr(self._name))
+
+	def __repr__(self) -> str:
+		return self.as_str()
