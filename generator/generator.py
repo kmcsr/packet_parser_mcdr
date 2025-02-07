@@ -2,6 +2,7 @@
 
 import io
 import os
+import re
 import requests
 from bs4 import BeautifulSoup
 from packetname_map import packetname_map
@@ -356,7 +357,9 @@ def generate_ids(target: str, version: str, wiki_id, packet_s2c_set: dict[str, l
 		ps = tb.previous_sibling
 		while ps is not None:
 			if pktname is None and ps.name == 'h4' :
-				pktname = ps.get_text().lower().replace('-', '_').\
+				pktname = ps.get_text()
+				pktname = re.sub(r'\s*\[[^\]]*\]\s*', '', pktname)
+				pktname = pktname.lower().replace('-', '_').\
 					removeprefix('serverbound').\
 					removeprefix('clientbound').\
 					replace('(clientbound)', 's2c').\
@@ -456,7 +459,7 @@ def main():
 		# ('1_20_4', 2773281),
 		# ('1_20_5', 2773283),
 		('1_21_1', 2789623),
-		# ('1_21_2', 2789623),
+		('1_21_4', 2845901),
 	]
 	if not os.path.exists('.cache'):
 		os.mkdir('.cache')
