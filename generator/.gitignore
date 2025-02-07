@@ -2,3 +2,4 @@
 *
 !.gitignore
 !generator.py
+!packetname_map.py
