@@ -535,6 +535,7 @@ def main():
 		for (version, wiki_id, states_s2c, states_c2s) in generated:
 			fd.write(f'\n# Generate from <{targetURL.format(id=wiki_id)}>\n')
 			fd.write(f'class PacketV{version}(PacketIdSet):\n')
+			fd.write('\t__slots__ = PacketIdSet.__slots__\n')
 			fd.write('\tINSTANCE: ClassVar[PacketIdSet]\n')
 			fd.write('\tdef __init__(self) -> None:\n')
 			fd.write(f'\t\tsuper().__init__(Protocol.V{version})\n')

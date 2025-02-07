@@ -8,7 +8,7 @@ from .numbers import Byte, Int, Long
 from .mutf8 import *
 
 __all__ = [
-	'List',
+	'List', 'String',
 	'ByteArray', 'IntArray', 'LongArray',
 ]
 
