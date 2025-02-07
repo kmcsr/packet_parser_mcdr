@@ -1,6 +1,7 @@
 # Generate from <https://wiki.vg/index.php?title=Protocol&oldid=>
 
 import abc
+import enum
 import uuid
 from abc import abstractmethod
 from typing import final, Type, Self, Any, Callable
@@ -609,7 +610,211 @@ class EntityMetadata:
 			return (x, y, z, w)
 
 @final
+class IntRange:
+	def __init__(self,
+		flags: int, # Byte
+		min: int | None, # Optional integer
+		max: int | None, # Optional integer
+	):
+		self.flags = flags
+		self.min = min
+		self.max = max
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+		if self.flags & 0x01:
+			assert self.min is not None
+			b.write_int(self.min)
+		if self.flags & 0x02:
+			assert self.max is not None
+			b.write_int(self.max)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		min = r.read_int() if flags & 0x01 else None
+		max = r.read_int() if flags & 0x02 else None
+		return cls(flags, min, max)
+
+@final
+class LongRange:
+	def __init__(self,
+		flags: int, # Byte
+		min: int | None, # Optional long
+		max: int | None, # Optional long
+	):
+		self.flags = flags
+		self.min = min
+		self.max = max
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+		if self.flags & 0x01:
+			assert self.min is not None
+			b.write_long(self.min)
+		if self.flags & 0x02:
+			assert self.max is not None
+			b.write_long(self.max)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		min = r.read_long() if flags & 0x01 else None
+		max = r.read_long() if flags & 0x02 else None
+		return cls(flags, min, max)
+
+@final
+class FloatRange:
+	def __init__(self,
+		flags: int, # Byte
+		min: float | None, # Optional float
+		max: float | None, # Optional float
+	):
+		self.flags = flags
+		self.min = min
+		self.max = max
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+		if self.flags & 0x01:
+			assert self.min is not None
+			b.write_float(self.min)
+		if self.flags & 0x02:
+			assert self.max is not None
+			b.write_float(self.max)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		min = r.read_float() if flags & 0x01 else None
+		max = r.read_float() if flags & 0x02 else None
+		return cls(flags, min, max)
+
+@final
+class DoubleRange:
+	def __init__(self,
+		flags: int, # Byte
+		min: float | None, # Optional double
+		max: float | None, # Optional double
+	):
+		self.flags = flags
+		self.min = min
+		self.max = max
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+		if self.flags & 0x01:
+			assert self.min is not None
+			b.write_double(self.min)
+		if self.flags & 0x02:
+			assert self.max is not None
+			b.write_double(self.max)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		min = r.read_double() if flags & 0x01 else None
+		max = r.read_double() if flags & 0x02 else None
+		return cls(flags, min, max)
+
+@final
+class NodeStringProp(enum.Enum):
+	SINGLE_WORD = 0
+	QUOTABLE_PHRASE = 1
+	GREEDY_PHRASE = 2
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_varint(self.value)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		value = r.read_varint()
+		return cls(value)
+
+@final
+class NodeEntityProp(enum.Enum):
+	def __init__(self,
+		flags: int, # Byte
+	):
+		self.flags = flags
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		return cls(flags)
+
+@final
+class NodeScoreHolderProp(enum.Enum):
+	def __init__(self,
+		flags: int, # Byte
+	):
+		self.flags = flags
+
+	def to_bytes(self, b: PacketBuffer) -> None:
+		b.write_byte(self.flags)
+
+	@classmethod
+	def parse_from(cls, r: PacketReader) -> Self:
+		flags = r.read_byte()
+		return cls(flags)
+
+
+@final
 class Node:
+	ID_MAP = {
+		0:  'brigadier:bool',
+		1:  'brigadier:float',
+		2:  'brigadier:double',
+		3:  'brigadier:integer',
+		4:  'brigadier:long',
+		5:  'brigadier:string',
+		6:  'minecraft:entity',
+		7:  'minecraft:game_profile',
+		8:  'minecraft:block_pos',
+		9:  'minecraft:column_pos',
+		10: 'minecraft:vec3with',
+		11: 'minecraft:vec2with',
+		12: 'minecraft:block_state',
+		13: 'minecraft:block_predicate',
+		14: 'minecraft:item_stack',
+		15: 'minecraft:item_predicate',
+		16: 'minecraft:color',
+		17: 'minecraft:component',
+		18: 'minecraft:message',
+		19: 'minecraft:nbt',
+		20: 'minecraft:nbt_tag',
+		21: 'minecraft:nbt_path',
+		22: 'minecraft:objective',
+		23: 'minecraft:objective_criteria',
+		24: 'minecraft:operation',
+		25: 'minecraft:particle',
+		26: 'minecraft:angle',
+		27: 'minecraft:rotationwith',
+		28: 'minecraft:scoreboard_slot',
+		29: 'minecraft:score_holder',
+		30: 'minecraft:swizzle',
+		31: 'minecraft:team',
+		32: 'minecraft:item_slot',
+		33: 'minecraft:resource_location',
+		34: 'minecraft:function',
+		35: 'minecraft:entity_anchor',
+		36: 'minecraft:int_range',
+		37: 'minecraft:float_range',
+		38: 'minecraft:dimension',
+		39: 'minecraft:gamemode',
+		40: 'minecraft:time',
+		41: 'minecraft:resource_or_tag',
+		42: 'minecraft:resource_or_tag_key',
+		43: 'minecraft:resource',
+		44: 'minecraft:resource_key',
+		45: 'minecraft:template_mirror',
+		46: 'minecraft:template_rotation',
+		47: 'minecraft:uuid',
+	}
+
 	def __init__(self,
 		flags: int, # Byte
 		children: list[int], # Array of VarInt
@@ -634,6 +839,12 @@ class Node:
 		self.parser_id = parser_id # Only for argument nodes.
 		self.properties = properties # Only for argument nodes. Varies by parser.
 		self.suggestions_type = suggestions_type # Only if flags & 0x10.
+
+	@property
+	def parser_sid(self) -> str | None:
+		if self.parser_id is None:
+			return None
+		return self.__class__.ID_MAP[self.parser_id]
 
 	def to_bytes(self, b: PacketBuffer) -> None:
 		b.write_varint(self.flags)
@@ -674,11 +885,29 @@ class Node:
 
 	@classmethod
 	def encode_properties(cls, parser_id: int, properties: Any, b: PacketBuffer) -> None:
-		raise NotImplementedError()
+		sid = cls.ID_MAP[parser_id]
+		if sid in cls.properties_encoder:
+			encoder, _ = cls.properties_encoder[sid]
+			encoder(properties, b)
 
 	@classmethod
 	def parse_properties(cls, parser_id: int, r: PacketReader) -> Any:
-		raise NotImplementedError()
+		sid = cls.ID_MAP[parser_id]
+		if sid in cls.properties_encoder:
+			_, parser = cls.properties_encoder[sid]
+			return parser(r)
+		return None
+
+	properties_encoder: dict[str, tuple[Callable, Callable]] = {
+		'brigadier:double': (DoubleRange.to_bytes, DoubleRange.parse_from),
+		'brigadier:float': (FloatRange.to_bytes, FloatRange.parse_from),
+		'brigadier:integer': (IntRange.to_bytes, IntRange.parse_from),
+		'brigadier:long': (LongRange.to_bytes, LongRange.parse_from),
+		'brigadier:string': (NodeStringProp.to_bytes, NodeStringProp.parse_from),
+		'minecraft:entity': (NodeEntityProp.to_bytes, NodeEntityProp.parse_from),
+		'minecraft:score_holder': (NodeScoreHolderProp.to_bytes, NodeScoreHolderProp.parse_from),
+		# TODO
+	}
 
 @final
 class CriterionProgress:
@@ -3437,7 +3666,7 @@ class PlaySynchronizePlayerPositionS2C(Packet):
 		pitch: float, # Float
 		flags: int, # Byte
 		teleport_id: int, # VarInt
-		dismount_vehicle: bool, # Boolean
+		# dismount_vehicle: bool, # Boolean
 	):
 		self.x = x # Absolute or relative position, depending on Flags.
 		self.y = y # Absolute or relative position, depending on Flags.
@@ -3446,7 +3675,7 @@ class PlaySynchronizePlayerPositionS2C(Packet):
 		self.pitch = pitch # Absolute or relative rotation on the Y axis, in degrees.
 		self.flags = flags # Bit field, see below.
 		self.teleport_id = teleport_id # Client should confirm this packet with Confirm Teleportation containing the same Teleport ID.
-		self.dismount_vehicle = dismount_vehicle # True if the player should dismount their vehicle.
+		# self.dismount_vehicle = dismount_vehicle # True if the player should dismount their vehicle.
 
 	def to_bytes(self, b: PacketBuffer) -> None:
 		b.write_double(self.x)
@@ -3456,7 +3685,7 @@ class PlaySynchronizePlayerPositionS2C(Packet):
 		b.write_float(self.pitch)
 		b.write_byte(self.flags)
 		b.write_varint(self.teleport_id)
-		b.write_bool(self.dismount_vehicle)
+		# b.write_bool(self.dismount_vehicle)
 
 	@classmethod
 	def parse_from(cls, r: PacketReader) -> Self:
@@ -3467,8 +3696,8 @@ class PlaySynchronizePlayerPositionS2C(Packet):
 		pitch = r.read_float()
 		flags = r.read_byte()
 		teleport_id = r.read_varint()
-		dismount_vehicle = r.read_bool()
-		return cls(x, y, z, yaw, pitch, flags, teleport_id, dismount_vehicle)
+		# dismount_vehicle = r.read_bool()
+		return cls(x, y, z, yaw, pitch, flags, teleport_id)
 
 @final
 class PlayUpdateRecipeBookS2C(Packet):
@@ -4744,7 +4973,7 @@ class PlayFeatureFlagsS2C(Packet):
 		for _ in range(r.read_varint()):
 			feature_flag = r.read_string()
 			feature_flags.append(feature_flag)
-		return cls(total_features, feature_flags)
+		return cls(feature_flags)
 
 @final
 class PlayEntityEffectS2C(Packet):
