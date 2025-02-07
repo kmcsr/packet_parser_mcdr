@@ -6,8 +6,8 @@
 		"zyxkad"
 	],
 	"description": {
-		"en_us": "A connection packet parser plugin for minecraft Java edition",
-		"zh_cn": "一个解析minecraft Java版通讯包的插件"
+		"en_us": "A packet parser plugin for Minecraft Java Edition",
+		"zh_cn": "一个解析 Minecraft JE 数据包的插件"
 	},
 	"link": "https://github.com/kmcsr/packet_parser_mcdr",
 	"dependencies": {
