@@ -5,8 +5,7 @@
 # outputs
 /output/
 /dist/
-/test/
-/.test/
+/_test/
 
 # caches
 __pycache__

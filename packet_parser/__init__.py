@@ -2,12 +2,14 @@
 import mcdreforged.api.all as MCDR
 
 from . import api
+from .api import *
+from . import nbt
+from .nbt import *
 from .utils import *
-from . import packets
 
-__all__ = [
-	'packets'
-]
+__all__: list[str] = []
+__all__.extend(api.__all__)
+__all__.extend(nbt.__all__)
 
 def on_load(server: MCDR.PluginServerInterface, prev_module):
 	if prev_module is None:

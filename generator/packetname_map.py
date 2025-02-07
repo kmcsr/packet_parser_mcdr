@@ -1,3 +1,4 @@
+# type: ignore
 
 packetname_map = {
 	'status_ping_request': 'status_ping',

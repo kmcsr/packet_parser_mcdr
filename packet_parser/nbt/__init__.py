@@ -1,12 +1,12 @@
 
-from .nbt import NBT
+from .nbt import NBT, NBTID
 from .compound import End, Compound
-from .list import List
+from .list import List, ByteArray, IntArray, LongArray
 from .numbers import Byte, Short, Int, Long, Float, Double
 
 __all__ = [
-	'NBTID', 'NBT',
+	'NBT', 'NBTID',
 	'Byte', 'Short', 'Int', 'Long', 'Float', 'Double',
 	'End', 'Compound', 'List',
-	'Byte_Array', 'Int_Array', 'Long_Array',
+	'ByteArray', 'IntArray', 'LongArray',
 ]

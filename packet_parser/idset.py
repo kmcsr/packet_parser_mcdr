@@ -1,5 +1,8 @@
 
+from typing import ClassVar
 from loginproxy import Protocol
+
+__all__ = ['PacketIdSet']
 
 class PacketIdSet:
 	__slots__ = (
@@ -262,27 +265,287 @@ class PacketIdSet:
 		'status_request', # 1_18_2, 1_19_2, 1_20_1, 1_21_1, 1_21_4
 	)
 
+	is_c2s = {
+		# S2C
+		'configuration_add_resource_pack': False,
+		'configuration_cookie_request': False,
+		'configuration_custom_report_details': False,
+		'configuration_disconnect': False,
+		'configuration_feature_flags': False,
+		'configuration_finish_configuration': False,
+		'configuration_keep_alive_s2c': False,
+		'configuration_known_packs_s2c': False,
+		'configuration_ping': False,
+		'configuration_plugin_message_s2c': False,
+		'configuration_registry_data': False,
+		'configuration_remove_resource_pack': False,
+		'configuration_reset_chat': False,
+		'configuration_server_links': False,
+		'configuration_store_cookie': False,
+		'configuration_transfer': False,
+		'configuration_update_tags': False,
+		'login_cookie_request': False,
+		'login_disconnect': False,
+		'login_encryption_request': False,
+		'login_plugin_request': False,
+		'login_set_compression': False,
+		'login_success': False,
+		'play_acknowledge_block_change': False,
+		'play_add_resource_pack': False,
+		'play_award_statistics': False,
+		'play_block_action': False,
+		'play_block_break_animation': False,
+		'play_block_entity_data': False,
+		'play_block_update': False,
+		'play_boss_bar': False,
+		'play_bundle_delimiter': False,
+		'play_change_difficulty_s2c': False,
+		'play_chat_preview_s2c': False,
+		'play_chat_suggestions': False,
+		'play_chunk_batch_finished': False,
+		'play_chunk_batch_start': False,
+		'play_chunk_biomes': False,
+		'play_chunk_data_and_update_light': False,
+		'play_clear_titles': False,
+		'play_close_container_s2c': False,
+		'play_combat_death': False,
+		'play_command_suggestions_response': False,
+		'play_commands': False,
+		'play_cookie_request': False,
+		'play_custom_report_details': False,
+		'play_custom_sound_effect': False,
+		'play_damage_event': False,
+		'play_debug_sample': False,
+		'play_delete_message': False,
+		'play_disconnect': False,
+		'play_disguised_chat_message': False,
+		'play_display_objective': False,
+		'play_end_combat': False,
+		'play_enter_combat': False,
+		'play_entity_animation': False,
+		'play_entity_effect': False,
+		'play_entity_event': False,
+		'play_entity_sound_effect': False,
+		'play_explosion': False,
+		'play_feature_flags': False,
+		'play_game_event': False,
+		'play_hide_message': False,
+		'play_hurt_animation': False,
+		'play_initialize_world_border': False,
+		'play_keep_alive_s2c': False,
+		'play_link_entities': False,
+		'play_login': False,
+		'play_look_at': False,
+		'play_map_data': False,
+		'play_merchant_offers': False,
+		'play_message_header': False,
+		'play_move_minecart_along_track': False,
+		'play_move_vehicle_s2c': False,
+		'play_open_book': False,
+		'play_open_horse_screen': False,
+		'play_open_screen': False,
+		'play_open_sign_editor': False,
+		'play_particle': False,
+		'play_pickup_item': False,
+		'play_ping': False,
+		'play_ping_response': False,
+		'play_place_ghost_recipe': False,
+		'play_player_abilities_s2c': False,
+		'play_player_chat_message': False,
+		'play_player_info': False,
+		'play_player_info_remove': False,
+		'play_player_info_update': False,
+		'play_plugin_message_s2c': False,
+		'play_projectile_power': False,
+		'play_recipe_book_add': False,
+		'play_recipe_book_remove': False,
+		'play_recipe_book_settings': False,
+		'play_remove_entities': False,
+		'play_remove_entity_effect': False,
+		'play_remove_resource_pack': False,
+		'play_reset_score': False,
+		'play_resource_pack_s2c': False,
+		'play_respawn': False,
+		'play_sculk_vibration_signal': False,
+		'play_select_advancements_tab': False,
+		'play_server_data': False,
+		'play_server_links': False,
+		'play_set_action_bar_text': False,
+		'play_set_block_destroy_stage': False,
+		'play_set_border_center': False,
+		'play_set_border_lerp_size': False,
+		'play_set_border_size': False,
+		'play_set_border_warning_delay': False,
+		'play_set_border_warning_distance': False,
+		'play_set_camera': False,
+		'play_set_center_chunk': False,
+		'play_set_container_content': False,
+		'play_set_container_property': False,
+		'play_set_container_slot': False,
+		'play_set_cooldown': False,
+		'play_set_cursor_item': False,
+		'play_set_default_spawn_position': False,
+		'play_set_display_chat_preview': False,
+		'play_set_entity_metadata': False,
+		'play_set_entity_velocity': False,
+		'play_set_equipment': False,
+		'play_set_experience': False,
+		'play_set_head_rotation': False,
+		'play_set_health': False,
+		'play_set_held_item_s2c': False,
+		'play_set_passengers': False,
+		'play_set_player_inventory_slot': False,
+		'play_set_player_rotation_s2c': False,
+		'play_set_render_distance': False,
+		'play_set_simulation_distance': False,
+		'play_set_subtitle_text': False,
+		'play_set_tab_list_header_and_footer': False,
+		'play_set_ticking_state': False,
+		'play_set_title_animation_times': False,
+		'play_set_title_text': False,
+		'play_sound_effect': False,
+		'play_spawn_entity': False,
+		'play_spawn_experience_orb': False,
+		'play_spawn_living_entity': False,
+		'play_spawn_painting': False,
+		'play_spawn_player': False,
+		'play_start_configuration': False,
+		'play_step_tick': False,
+		'play_stop_sound': False,
+		'play_store_cookie': False,
+		'play_synchronize_player_position': False,
+		'play_synchronize_vehicle_position': False,
+		'play_system_chat_message': False,
+		'play_tag_query_response': False,
+		'play_teleport_entity': False,
+		'play_transfer': False,
+		'play_unload_chunk': False,
+		'play_update_advancements': False,
+		'play_update_attributes': False,
+		'play_update_entity_position': False,
+		'play_update_entity_position_and_rotation': False,
+		'play_update_entity_rotation': False,
+		'play_update_light': False,
+		'play_update_objectives': False,
+		'play_update_recipe_book': False,
+		'play_update_recipes': False,
+		'play_update_score': False,
+		'play_update_section_blocks': False,
+		'play_update_tags': False,
+		'play_update_teams': False,
+		'play_update_time': False,
+		'play_world_event': False,
+		'status_pong': False,
+		'status_response': False,
+		# C2S
+		'configuration_acknowledge_finish_configuration': True,
+		'configuration_client_information': True,
+		'configuration_cookie_response': True,
+		'configuration_keep_alive_c2s': True,
+		'configuration_known_packs_c2s': True,
+		'configuration_plugin_message_c2s': True,
+		'configuration_pong': True,
+		'configuration_resource_pack_response': True,
+		'handshaking_handshake': True,
+		'handshaking_legacy_server_list_ping': True,
+		'login_acknowledged': True,
+		'login_cookie_response': True,
+		'login_encryption_response': True,
+		'login_plugin_response': True,
+		'login_start': True,
+		'play_acknowledge_configuration': True,
+		'play_acknowledge_message': True,
+		'play_bundle_item_selected': True,
+		'play_change_container_slot_state': True,
+		'play_change_difficulty_c2s': True,
+		'play_change_recipe_book_settings': True,
+		'play_chat_command': True,
+		'play_chat_message': True,
+		'play_chat_preview_c2s': True,
+		'play_chunk_batch_received': True,
+		'play_click_container': True,
+		'play_click_container_button': True,
+		'play_client_information': True,
+		'play_client_status': True,
+		'play_client_tick_end': True,
+		'play_close_container_c2s': True,
+		'play_command_suggestions_request': True,
+		'play_confirm_teleportation': True,
+		'play_cookie_response': True,
+		'play_debug_sample_subscription': True,
+		'play_edit_book': True,
+		'play_generate_structure': True,
+		'play_interact': True,
+		'play_keep_alive_c2s': True,
+		'play_lock_difficulty': True,
+		'play_message_acknowledgment': True,
+		'play_move_vehicle_c2s': True,
+		'play_paddle_boat': True,
+		'play_pick_item': True,
+		'play_pick_item_from_block': True,
+		'play_pick_item_from_entity': True,
+		'play_ping_request': True,
+		'play_place_recipe': True,
+		'play_player_abilities_c2s': True,
+		'play_player_action': True,
+		'play_player_command': True,
+		'play_player_input': True,
+		'play_player_loaded': True,
+		'play_player_session': True,
+		'play_plugin_message_c2s': True,
+		'play_pong': True,
+		'play_program_command_block': True,
+		'play_program_command_block_minecart': True,
+		'play_program_jigsaw_block': True,
+		'play_program_structure_block': True,
+		'play_query_block_entity_tag': True,
+		'play_query_entity_tag': True,
+		'play_rename_item': True,
+		'play_resource_pack_c2s': True,
+		'play_resource_pack_response': True,
+		'play_seen_advancements': True,
+		'play_select_trade': True,
+		'play_set_beacon_effect': True,
+		'play_set_creative_mode_slot': True,
+		'play_set_held_item_c2s': True,
+		'play_set_player_movement_flags': True,
+		'play_set_player_on_ground': True,
+		'play_set_player_position': True,
+		'play_set_player_position_and_rotation': True,
+		'play_set_player_rotation_c2s': True,
+		'play_set_seen_recipe': True,
+		'play_signed_chat_command': True,
+		'play_swing_arm': True,
+		'play_teleport_to_entity': True,
+		'play_update_sign': True,
+		'play_use_item': True,
+		'play_use_item_on': True,
+		'status_ping': True,
+		'status_request': True,
+	}
+
 	def __init__(self, version: int):
 		self.version = version
 
 	@staticmethod
-	def from_protocol(protocol: int) -> PacketIdSet:
+	def from_protocol(protocol: int) -> 'PacketIdSet':
 		if protocol >= Protocol.V1_21_4:
-			return PacketV1_21_4
+			return PacketV1_21_4.INSTANCE
 		if protocol >= Protocol.V1_21_1:
-			return PacketV1_21_1
+			return PacketV1_21_1.INSTANCE
 		if protocol >= Protocol.V1_20_1:
-			return PacketV1_20_1
+			return PacketV1_20_1.INSTANCE
 		if protocol >= Protocol.V1_19_2:
-			return PacketV1_19_2
+			return PacketV1_19_2.INSTANCE
 		if protocol >= Protocol.V1_18_2:
-			return PacketV1_18_2
+			return PacketV1_18_2.INSTANCE
 		raise ValueError(f'unsupported version {protocol}')
 
 # Generate from <https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol?oldid=2772783>
 class PacketV1_18_2(PacketIdSet):
+	INSTANCE: ClassVar[PacketIdSet]
 	def __init__(self) -> None:
-		super.__init__(Protocol.V1_18_2)
+		super().__init__(Protocol.V1_18_2)
 		# Client bounds
 		self.status_response = 0x00
 		self.status_pong = 0x01
@@ -451,11 +714,13 @@ class PacketV1_18_2(PacketIdSet):
 		self.play_teleport_to_entity = 0x2D
 		self.play_use_item_on = 0x2E
 		self.play_use_item = 0x2F
+PacketV1_18_2.INSTANCE = PacketV1_18_2()
 
 # Generate from <https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol?oldid=2772944>
 class PacketV1_19_2(PacketIdSet):
+	INSTANCE: ClassVar[PacketIdSet]
 	def __init__(self) -> None:
-		super.__init__(Protocol.V1_19_2)
+		super().__init__(Protocol.V1_19_2)
 		# Client bounds
 		self.status_response = 0x00
 		self.status_pong = 0x01
@@ -631,11 +896,13 @@ class PacketV1_19_2(PacketIdSet):
 		self.play_teleport_to_entity = 0x30
 		self.play_use_item_on = 0x31
 		self.play_use_item = 0x32
+PacketV1_19_2.INSTANCE = PacketV1_19_2()
 
 # Generate from <https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol?oldid=2773082>
 class PacketV1_20_1(PacketIdSet):
+	INSTANCE: ClassVar[PacketIdSet]
 	def __init__(self) -> None:
-		super.__init__(Protocol.V1_20_1)
+		super().__init__(Protocol.V1_20_1)
 		# Client bounds
 		self.status_response = 0x00
 		self.status_pong = 0x01
@@ -814,11 +1081,13 @@ class PacketV1_20_1(PacketIdSet):
 		self.play_teleport_to_entity = 0x30
 		self.play_use_item_on = 0x31
 		self.play_use_item = 0x32
+PacketV1_20_1.INSTANCE = PacketV1_20_1()
 
 # Generate from <https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol?oldid=2789623>
 class PacketV1_21_1(PacketIdSet):
+	INSTANCE: ClassVar[PacketIdSet]
 	def __init__(self) -> None:
-		super.__init__(Protocol.V1_21_1)
+		super().__init__(Protocol.V1_21_1)
 		# Client bounds
 		self.status_response = 0x00 # resource: status_response
 		self.status_pong = 0x01 # resource: pong_response
@@ -1045,11 +1314,13 @@ class PacketV1_21_1(PacketIdSet):
 		self.play_teleport_to_entity = 0x37
 		self.play_use_item_on = 0x38
 		self.play_use_item = 0x39
+PacketV1_21_1.INSTANCE = PacketV1_21_1()
 
 # Generate from <https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol?oldid=2845901>
 class PacketV1_21_4(PacketIdSet):
+	INSTANCE: ClassVar[PacketIdSet]
 	def __init__(self) -> None:
-		super.__init__(Protocol.V1_21_4)
+		super().__init__(Protocol.V1_21_4)
 		# Client bounds
 		self.status_response = 0x00 # resource: status_response
 		self.status_pong = 0x01 # resource: pong_response
@@ -1287,3 +1558,4 @@ class PacketV1_21_4(PacketIdSet):
 		self.play_teleport_to_entity = 0x3B # resource: teleport_to_entity
 		self.play_use_item_on = 0x3C # resource: use_item_on
 		self.play_use_item = 0x3D # resource: use_item
+PacketV1_21_4.INSTANCE = PacketV1_21_4()

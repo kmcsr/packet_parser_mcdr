@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# type: ignore
 
 import io
 import os
@@ -501,7 +502,9 @@ def main():
 	sorted_c2s_packet_set = sorted(packet_c2s_set.items())
 	with open(f'./.generated/idset.py', 'w') as fd:
 		# generate_packets(targetURL, p, fd)
-		fd.write('\nfrom loginproxy import Protocol\n\n')
+		fd.write('\nfrom typing import ClassVar\n')
+		fd.write('from loginproxy import Protocol\n\n')
+		fd.write("__all__ = ['PacketIdSet']\n\n")
 		fd.write('class PacketIdSet:\n')
 		fd.write('\t__slots__ = (\n')
 		fd.write("\t\t'version',\n")
@@ -512,20 +515,29 @@ def main():
 		for name, versions in sorted_c2s_packet_set:
 			fd.write(f"\t\t'{name}', # {', '.join(versions)}\n")
 		fd.write('\t)\n\n')
+		fd.write('\tis_c2s = {\n')
+		fd.write("\t\t# S2C\n")
+		for name, versions in sorted_s2c_packet_set:
+			fd.write(f"\t\t'{name}': False,\n")
+		fd.write("\t\t# C2S\n")
+		for name, versions in sorted_c2s_packet_set:
+			fd.write(f"\t\t'{name}': True,\n")
+		fd.write('\t}\n\n')
 		fd.write('\tdef __init__(self, version: int):\n')
 		fd.write('\t\tself.version = version\n\n')
 		fd.write('\t@staticmethod\n')
-		fd.write('\tdef from_protocol(protocol: int) -> PacketIdSet:\n')
+		fd.write("\tdef from_protocol(protocol: int) -> 'PacketIdSet':\n")
 		for (version, _, _, _) in reversed(generated):
 			fd.write(f'\t\tif protocol >= Protocol.V{version}:\n')
-			fd.write(f'\t\t\treturn PacketV{version}\n')
+			fd.write(f'\t\t\treturn PacketV{version}.INSTANCE\n')
 		fd.write("\t\traise ValueError(f'unsupported version {protocol}')\n")
 		
 		for (version, wiki_id, states_s2c, states_c2s) in generated:
 			fd.write(f'\n# Generate from <{targetURL.format(id=wiki_id)}>\n')
 			fd.write(f'class PacketV{version}(PacketIdSet):\n')
+			fd.write('\tINSTANCE: ClassVar[PacketIdSet]\n')
 			fd.write('\tdef __init__(self) -> None:\n')
-			fd.write(f'\t\tsuper.__init__(Protocol.V{version})\n')
+			fd.write(f'\t\tsuper().__init__(Protocol.V{version})\n')
 			fd.write(f'\t\t# Client bounds\n')
 			for state, pkts in states_s2c.items():
 				for p, d, r in pkts:
@@ -540,6 +552,7 @@ def main():
 					if r is not None:
 						fd.write(f' # resource: {r}')
 					fd.write('\n')
+			fd.write(f'PacketV{version}.INSTANCE = PacketV{version}()\n')
 
 if __name__ == '__main__':
 	main()

@@ -9,7 +9,7 @@ from .mutf8 import *
 
 __all__ = [
 	'List',
-	'Byte_Array', 'Int_Array', 'Long_Array',
+	'ByteArray', 'IntArray', 'LongArray',
 ]
 
 @final
@@ -96,7 +96,7 @@ class String(NBT, id=NBTID.String):
 	def as_str(self, *, indent: int = 0) -> str:
 		return super().as_str(indent=indent) + ': ' + repr(self.value)
 
-class Byte_Array(NBT, id=NBTID.Byte_Array):
+class ByteArray(NBT, id=NBTID.ByteArray):
 	def __init__(self, value: list[Byte] | list[int] | bytes | bytearray, name: str | None = None):
 		super().__init__(name)
 		if isinstance(value, (bytes, bytearray)):
@@ -132,7 +132,7 @@ class Byte_Array(NBT, id=NBTID.Byte_Array):
 	def as_str(self, *, indent: int = 0) -> str:
 		return super().as_str(indent=indent) + ': {}'.format(list(self.value))
 
-class Int_Array(NBT, id=NBTID.Int_Array):
+class IntArray(NBT, id=NBTID.IntArray):
 	def __init__(self, value: list[Int] | list[int], name: str | None = None):
 		super().__init__(name)
 		self._value: list[int] = []
@@ -163,7 +163,7 @@ class Int_Array(NBT, id=NBTID.Int_Array):
 		value = [r.read_int() for _ in range(r.read_int())]
 		return cls(value, name)
 
-class Long_Array(NBT, id=NBTID.Long_Array):
+class LongArray(NBT, id=NBTID.LongArray):
 	def __init__(self, value: list[Long] | list[int], name: str | None = None):
 		super().__init__(name)
 		self._value: list[int] = []
