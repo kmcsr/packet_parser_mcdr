@@ -1,13 +1,13 @@
 {
 	"id": "packet_parser",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"name": "PacketParser",
 	"author": [
 		"zyxkad"
 	],
 	"description": {
-		"en_us": "A packet parser plugin for Minecraft Java Edition",
-		"zh_cn": "一个解析 Minecraft JE 数据包的插件"
+		"en_us": "A packet parser help to parse Minecraft Java Edition",
+		"zh_cn": "辅助解析 Minecraft JE 数据包"
 	},
 	"link": "https://github.com/kmcsr/packet_parser_mcdr",
 	"dependencies": {
